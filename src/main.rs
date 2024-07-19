@@ -39,6 +39,8 @@ fn lex_line(program: &mut Vec<Operation>, ip: usize, filepath: &String, row: usi
         match w {
             "dump" => program.push(operation::op_dump(ip)),
             "dup" => program.push(operation::op_dup(ip)),
+            "dup2" => program.push(operation::op_dup_2(ip)),
+            "drop" => program.push(operation::op_drop(ip)),
             "+" => program.push(operation::op_plus(ip)),
             "-" => program.push(operation::op_minus(ip)),
             "*" => program.push(operation::op_multiply(ip)),
@@ -51,14 +53,18 @@ fn lex_line(program: &mut Vec<Operation>, ip: usize, filepath: &String, row: usi
             "<=" => program.push(operation::op_eq_le(ip)),
             ">=" => program.push(operation::op_eq_gr(ip)),
             "!" => program.push(operation::op_not(ip)),
+            "<<" => program.push(operation::op_shift_left(ip)),
+            ">>" => program.push(operation::op_shift_right(ip)),
+            "&" => program.push(operation::op_bit_and(ip)),
+            "|" => program.push(operation::op_bit_or(ip)),
             "end" => program.push(operation::op_end(ip)),
             "if" => program.push(operation::op_if(ip)),
             "else" => program.push(operation::op_else(ip)),
             "while" => program.push(operation::op_while(ip)),
             "do" => program.push(operation::op_do(ip)),
             "mem" => program.push(operation::op_memory(ip)),
-            "load" => program.push(operation::op_load(ip)),
-            "store" => program.push(operation::op_store(ip)),
+            "," => program.push(operation::op_load(ip)),
+            "." => program.push(operation::op_store(ip)),
             "syscall1" => program.push(operation::op_syscall_1(ip)),
             "syscall3" => program.push(operation::op_syscall_3(ip)),
             number => {
@@ -111,24 +117,21 @@ fn crossreference_blocks(program: &mut Vec<Operation>) {
             }
             // ignore other instructions
             Token::Push 
-                | Token::Dump 
-                | Token::Dup 
-                | Token::Plus 
-                | Token::Minus 
-                | Token::Multiply
-                | Token::Divide
+                | Token::Dump | Token::Drop
+                | Token::Dup | Token::Dup2
+                | Token::Plus | Token::Minus 
+                | Token::Multiply | Token::Divide
                 | Token::Modulo
-                | Token::Eq 
-                | Token::NotEq 
-                | Token::Le 
-                | Token::Gr 
-                | Token::EqGr 
-                | Token::EqLe 
-                | Token::Not 
+                | Token::Eq | Token::NotEq | Token::Not 
+                | Token::Le | Token::Gr 
+                | Token::EqGr | Token::EqLe
+                | Token::BitAnd | Token::BitOr 
+                | Token::ShiftRight | Token::ShiftLeft 
                 | Token::Memory
                 | Token::Load
                 | Token::Store
-                | Token::Syscall1 | Token::Syscall3
+                | Token::Syscall1 
+                | Token::Syscall3
                 => {} 
         }
     }

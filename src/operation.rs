@@ -9,6 +9,22 @@ pub struct Operation {
     pub value: i64,
 }
 
+pub fn op_shift_left(index: usize) -> Operation {
+    Operation { index, token: Token::ShiftLeft, value: DEFAULT_VALUE }
+}
+
+pub fn op_shift_right(index: usize) -> Operation {
+    Operation { index, token: Token::ShiftRight, value: DEFAULT_VALUE }
+}
+
+pub fn op_bit_and(index: usize) -> Operation {
+    Operation { index, token: Token::BitAnd, value: DEFAULT_VALUE }
+}
+
+pub fn op_bit_or(index: usize) -> Operation {
+    Operation { index, token: Token::BitOr, value: DEFAULT_VALUE }
+}
+
 pub fn op_syscall_1(index: usize) -> Operation {
     Operation { index, token: Token::Syscall1, value: DEFAULT_VALUE }
 }
@@ -53,8 +69,16 @@ pub fn op_not(index: usize) -> Operation {
     Operation { index, token: Token::Not, value: DEFAULT_VALUE }    
 }
 
+pub fn op_drop(index: usize) -> Operation {
+    Operation { index, token: Token::Drop, value: DEFAULT_VALUE }    
+}
+
 pub fn op_dup(index: usize) -> Operation {
     Operation { index, token: Token::Dup, value: DEFAULT_VALUE }    
+}
+
+pub fn op_dup_2(index: usize) -> Operation {
+    Operation { index, token: Token::Dup2, value: DEFAULT_VALUE }    
 }
 
 pub fn op_while(index: usize) -> Operation {

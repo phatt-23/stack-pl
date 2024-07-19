@@ -18,6 +18,22 @@ pub fn simulate_program(program: &Vec<Operation>) {
             Token::Dump => {
                 println!("{}", stack.pop().expect("[ERROR]: (Empty Stack) <dump> 'dump' expects 1 operand"));
             }
+            Token::Drop => {
+                stack.pop().expect("[ERROR]: (Empty Stack) <drop> 'drop' expects 1 operand");
+            }
+            Token::Dup => {
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <duplicate> 'dup' expects 1 operand");
+                stack.push(a);
+                stack.push(a);
+            }
+            Token::Dup2 => {
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (second)");
+                stack.push(a);
+                stack.push(b);
+                stack.push(a);
+                stack.push(b);
+            }
             Token::Plus => {
                 let b = stack.pop().expect("[ERROR]: (Empty Stack) <plus> '+' expects 2 operands (first operand)");
                 let a = stack.pop().expect("[ERROR]: (Empty Stack) <plus> '+' expects 2 operands (second operand)");
@@ -62,11 +78,6 @@ pub fn simulate_program(program: &Vec<Operation>) {
             Token::Else => {
                 ip = op.value as usize;
             }
-            Token::Dup => {
-                let a = stack.pop().expect("[ERROR]: (Empty Stack) <duplicate> 'dup' expects 1 operand");
-                stack.push(a);
-                stack.push(a);
-            }
             Token::Do => {
                 let a = stack.pop().expect("[ERROR]: (Empty Stack) <do-statement> 'do' expects 1 operand") != 0;
                 if a == false {
@@ -77,13 +88,13 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 // nothing
             }
             Token::EqGr => {
-                let b = stack.pop().expect("[ERROR]: (Empty Stack) <equal-greater> '>=' expects 2 operands (first operand)");
-                let a = stack.pop().expect("[ERROR]: (Empty Stack) <equal-greater> '>=' expects 2 operands (second operand)");
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <equal-greater> '>=' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <equal-greater> '>=' expects 2 operands (second)");
                 stack.push((a >= b) as i64);
             }
             Token::EqLe => {
-                let b = stack.pop().expect("[ERROR]: (Empty Stack) <equal-less> '<=' expects 2 operands (first operand)");
-                let a = stack.pop().expect("[ERROR]: (Empty Stack) <equal-less> '<=' expects 2 operands (second operand)");
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <equal-less> '<=' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <equal-less> '<=' expects 2 operands (second)");
                 stack.push((a <= b) as i64);
             }
             Token::Not => {
@@ -91,19 +102,39 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 stack.push((!a) as i64);
             }
             Token::Multiply => {
-                let b = stack.pop().expect("[ERROR]: (Empty Stack) <multiply> '*' expects 2 operands (first operand)");
-                let a = stack.pop().expect("[ERROR]: (Empty Stack) <multiply> '*' expects 2 operands (second operand)");
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <multiply> '*' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <multiply> '*' expects 2 operands (second)");
                 stack.push((a * b) as i64);
             }
             Token::Divide => {
-                let b = stack.pop().expect("[ERROR]: (Empty Stack) <divide> '/' expects 2 operands (first operand)");
-                let a = stack.pop().expect("[ERROR]: (Empty Stack) <divide> '/' expects 2 operands (second operand)");
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <divide> '/' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <divide> '/' expects 2 operands (second)");
                 stack.push((a / b) as i64);
             }
             Token::Modulo => {
-                let b = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (first operand)");
-                let a = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (second operand)");
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (second)");
                 stack.push((a % b) as i64);
+            }
+            Token::BitAnd => {
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <bit-and> '&' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <bit-and> '&' expects 2 operands (second)");
+                stack.push((a & b) as i64);
+            }
+            Token::BitOr => {
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (second)");
+                stack.push((a | b) as i64);
+            }
+            Token::ShiftRight => {
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (second)");
+                stack.push((a >> b) as i64);
+            }
+            Token::ShiftLeft => {
+                let b = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (first)");
+                let a = stack.pop().expect("[ERROR]: (Empty Stack) <modulo> '%' expects 2 operands (second)");
+                stack.push((a << b) as i64);
             }
             Token::Memory => {
                 stack.push((0) as i64); 
@@ -114,13 +145,13 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 stack.push(value);
             }
             Token::Store => {
-                let value = stack.pop().expect("[ERROR]: (Empty Stack) <store> 'store' expects 2 operands (first operand)") as u8;
-                let mem_index = stack.pop().expect("[ERROR]: (Empty Stack) <store> 'store' expects 2 operands (second operand)") as usize;
+                let value = stack.pop().expect("[ERROR]: (Empty Stack) <store> 'store' expects 2 operands (first)") as u8;
+                let mem_index = stack.pop().expect("[ERROR]: (Empty Stack) <store> 'store' expects 2 operands (second)") as usize;
                 memory[mem_index] = value;
             }
             Token::Syscall1 => {
-                let code = stack.pop().expect("[ERROR]: (Empty Stack) <syscall1> 'store' expects 2 operands (first operand)");
-                let arg1 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall1> 'store' expects 2 operands (second operand)");
+                let code = stack.pop().expect("[ERROR]: (Empty Stack) <syscall1> 'store' expects 2 operands (first)");
+                let arg1 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall1> 'store' expects 2 operands (second)");
                 match code {
                     60 => { // exit
                         println!("<syscall> exited with status ({arg1})");
@@ -130,10 +161,10 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 }
             }
             Token::Syscall3  => {
-                let code = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (first operand)");
-                let arg1 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (second operand)");
-                let arg2 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (first operand)");
-                let arg3 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (first operand)");
+                let code = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (first)");
+                let arg1 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (second)");
+                let arg2 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (third)");
+                let arg3 = stack.pop().expect("[ERROR]: (Empty Stack) <syscall3> 'store' expects 4 operands (fourth)");
                 match code {
                     1 => { // write
                         match arg1 { // file desc

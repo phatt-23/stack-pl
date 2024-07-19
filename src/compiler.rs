@@ -1,3 +1,4 @@
+use std::mem;
 use std::io::{self, Write};
 use std::fs::File;
 use std::process::Command;
@@ -127,6 +128,25 @@ fn parse_word_to_op(file: &mut std::fs::File, op: &Operation) -> Result<i32, io:
             writeln!(file, "    pop rdi")?;
             writeln!(file, "    call print_num")?;
         }
+        Token::Drop => {
+            writeln!(file, "    ;; drop")?;
+            writeln!(file, "    add rsp, {}", mem::size_of::<usize>())?; // system dependent
+        }
+        Token::Dup2 => {
+            writeln!(file, "    ;; dup 2")?;
+            writeln!(file, "    pop  rax")?;
+            writeln!(file, "    pop  rbx")?;
+            writeln!(file, "    push rbx")?;
+            writeln!(file, "    push rax")?;
+            writeln!(file, "    push rbx")?;
+            writeln!(file, "    push rax")?;
+        }            
+        Token::Dup => {
+            writeln!(file, "    ;; dup")?;
+            writeln!(file, "    pop  rax")?;
+            writeln!(file, "    push rax")?;
+            writeln!(file, "    push rax")?;
+        }
         Token::Plus => {
             writeln!(file, "    ;; plus")?;
             writeln!(file, "    pop  rax")?;
@@ -181,6 +201,34 @@ fn parse_word_to_op(file: &mut std::fs::File, op: &Operation) -> Result<i32, io:
             writeln!(file, "    cmovg rbx, rax")?;
             writeln!(file, "    push  rbx")?;
         }
+        Token::BitAnd => {
+            writeln!(file, "    ;; bit and")?;
+            writeln!(file, "    pop   rax")?;
+            writeln!(file, "    pop   rbx")?;
+            writeln!(file, "    and   rbx, rax")?;
+            writeln!(file, "    push  rbx")?;
+        }
+        Token::BitOr => {
+            writeln!(file, "    ;; bit or")?;
+            writeln!(file, "    pop   rax")?;
+            writeln!(file, "    pop   rbx")?;
+            writeln!(file, "    or    rbx, rax")?;
+            writeln!(file, "    push  rbx")?;
+        }
+        Token::ShiftRight => {
+            writeln!(file, "    ;; shift right")?;
+            writeln!(file, "    pop   rcx")?;
+            writeln!(file, "    pop   rbx")?;
+            writeln!(file, "    shr   rbx, cl")?;
+            writeln!(file, "    push  rbx")?;
+        }
+        Token::ShiftLeft => {
+            writeln!(file, "    ;; shift left")?;
+            writeln!(file, "    pop   rcx")?;
+            writeln!(file, "    pop   rbx")?;
+            writeln!(file, "    shl   rbx, cl")?;
+            writeln!(file, "    push  rbx")?;
+        }
         Token::End => {
             writeln!(file, "    ;; end")?;
             if op.value >= 0 {
@@ -196,12 +244,6 @@ fn parse_word_to_op(file: &mut std::fs::File, op: &Operation) -> Result<i32, io:
         Token::Else => {
             writeln!(file, "    ;; else")?;
             writeln!(file, "    jmp address_{}", op.value)?;
-        }
-        Token::Dup => {
-            writeln!(file, "    ;; dup")?;
-            writeln!(file, "    pop  rax")?;
-            writeln!(file, "    push rax")?;
-            writeln!(file, "    push rax")?;
         }
         Token::Do => {
             writeln!(file, "    ;; do")?;

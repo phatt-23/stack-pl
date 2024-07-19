@@ -78,112 +78,121 @@ print_num:
  
 _start:
 address_0:
-    ;; mem
-    push MEMORY
+    ;; push op
+    push 30
 address_1:
-    ;; dup
-    pop  rax
-    push rax
-    push rax
+    ;; push op
+    push 0
 address_2:
-    ;; push op
-    push 72
+    ;; while
+    ;  ignore
 address_3:
-    ;; store
-    pop rbx
-    pop rax
-    mov byte [rax], bl
-address_4:
-    ;; push op
-    push 1
-address_5:
-    ;; plus
+    ;; dup 2
     pop  rax
     pop  rbx
-    add  rbx, rax
     push rbx
-address_6:
-    ;; dup
+    push rax
+    push rbx
+    push rax
+address_4:
+    ;; gr
+    pop   rax
+    pop   rbx
+    cmp   rbx, rax
+    mov   rbx, 0
+    mov   rax, 1
+    cmovg rbx, rax
+    push  rbx
+address_5:
+    ;; do
     pop  rax
-    push rax
-    push rax
+    cmp  rax, 0
+    jz   address_56
+address_6:
+    ;; push op
+    push 30
 address_7:
     ;; push op
-    push 101
+    push 0
 address_8:
-    ;; store
-    pop rbx
-    pop rax
-    mov byte [rax], bl
+    ;; while
+    ;  ignore
 address_9:
-    ;; push op
-    push 1
+    ;; dup 2
+    pop  rax
+    pop  rbx
+    push rbx
+    push rax
+    push rbx
+    push rax
 address_10:
-    ;; plus
-    pop  rax
-    pop  rbx
-    add  rbx, rax
-    push rbx
+    ;; gr
+    pop   rax
+    pop   rbx
+    cmp   rbx, rax
+    mov   rbx, 0
+    mov   rax, 1
+    cmovg rbx, rax
+    push  rbx
 address_11:
-    ;; dup
+    ;; do
     pop  rax
-    push rax
-    push rax
+    cmp  rax, 0
+    jz   address_39
 address_12:
-    ;; push op
-    push 108
+    ;; dup
+    pop  rax
+    push rax
+    push rax
 address_13:
-    ;; store
-    pop rbx
-    pop rax
-    mov byte [rax], bl
+    ;; mem
+    push MEMORY
 address_14:
-    ;; push op
-    push 1
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
 address_15:
-    ;; plus
-    pop  rax
-    pop  rbx
-    add  rbx, rax
-    push rbx
+    ;; load
+    pop   rax
+    xor   rbx, rbx
+    mov   bl, byte [rax]
+    push  rbx
 address_16:
-    ;; dup
-    pop  rax
-    push rax
-    push rax
-address_17:
-    ;; push op
-    push 108
-address_18:
-    ;; store
-    pop rbx
+    ;; if
     pop rax
-    mov byte [rax], bl
-address_19:
+    cmp rax, 0
+    jz  address_23
+address_17:
+    ;; mem
+    push MEMORY
+address_18:
     ;; push op
-    push 1
-address_20:
+    push 30
+address_19:
     ;; plus
     pop  rax
     pop  rbx
     add  rbx, rax
     push rbx
-address_21:
-    ;; dup
-    pop  rax
-    push rax
-    push rax
-address_22:
+address_20:
     ;; push op
-    push 111
-address_23:
+    push 42
+address_21:
     ;; store
     pop rbx
     pop rax
     mov byte [rax], bl
+address_22:
+    ;; else
+    jmp address_28
+address_23:
+    ;; mem
+    push MEMORY
 address_24:
     ;; push op
-    push 1
+    push 30
 address_25:
     ;; plus
     pop  rax
@@ -191,72 +200,130 @@ address_25:
     add  rbx, rax
     push rbx
 address_26:
-    ;; dup
-    pop  rax
-    push rax
-    push rax
-address_27:
     ;; push op
-    push 10
-address_28:
+    push 42
+address_27:
     ;; store
     pop rbx
     pop rax
     mov byte [rax], bl
+address_28:
+    ;; end
 address_29:
     ;; push op
     push 1
 address_30:
+    ;; mem
+    push MEMORY
+address_31:
+    ;; push op
+    push 30
+address_32:
     ;; plus
     pop  rax
     pop  rbx
     add  rbx, rax
     push rbx
-address_31:
-    ;; dup
-    pop  rax
-    push rax
-    push rax
-address_32:
-    ;; push op
-    push 10
 address_33:
-    ;; store
-    pop rbx
-    pop rax
-    mov byte [rax], bl
+    ;; push op
+    push 1
 address_34:
-    ;; dup
-    pop  rax
-    push rax
-    push rax
+    ;; push op
+    push 1
 address_35:
-    ;; mem
-    push MEMORY
-address_36:
-    ;; push op
-    push 1
-address_37:
-    ;; push op
-    push 1
-address_38:
     ;; syscall3
     pop rax
     pop rdi
     pop rsi
     pop rdx
     syscall
+address_36:
+    ;; push op
+    push 1
+address_37:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_38:
+    ;; end
+    jmp address_8
 address_39:
-    ;; push op
-    push 123
+    ;; drop
+    add rsp, 8
 address_40:
-    ;; push op
-    push 60
+    ;; drop
+    add rsp, 8
 address_41:
-    ;; syscall1
+    ;; mem
+    push MEMORY
+address_42:
+    ;; push op
+    push 30
+address_43:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_44:
+    ;; push op
+    push 10
+address_45:
+    ;; store
+    pop rbx
+    pop rax
+    mov byte [rax], bl
+address_46:
+    ;; push op
+    push 1
+address_47:
+    ;; mem
+    push MEMORY
+address_48:
+    ;; push op
+    push 30
+address_49:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_50:
+    ;; push op
+    push 1
+address_51:
+    ;; push op
+    push 1
+address_52:
+    ;; syscall3
     pop rax
     pop rdi
+    pop rsi
+    pop rdx
     syscall
+address_53:
+    ;; push op
+    push 1
+address_54:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_55:
+    ;; end
+    jmp address_2
+address_56:
+    ;; drop
+    add rsp, 8
+address_57:
+    ;; drop
+    add rsp, 8
+address_58:
+    ;; push op
+    push 0
     ;;; return
     mov rax, [SYSCALL_EXIT]
     mov rdi, 0
