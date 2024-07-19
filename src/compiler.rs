@@ -1,10 +1,26 @@
 use std::io::{self, Write};
 use std::fs::File;
+use std::process::Command;
 
 use super::Token;
 use super::Operation;
 
-pub fn compile_program(program: Vec<Operation>, output: &str) -> io::Result<i32> {
+fn print_command_output(output: std::process::Output) {
+    if !&output.stdout.is_empty() {
+        println!("[INFO]: stdout: {}", String::from_utf8_lossy(&output.stdout));
+    }
+    if !&output.stderr.is_empty() {
+        println!("[ERROR]: stderr:\n{}", String::from_utf8_lossy(&output.stderr));
+        println!("[ERROR]: status:\n{}", output.status);
+    }
+}
+
+pub fn compile_assembly() {
+    print_command_output( Command::new("nasm").arg("-felf64").arg("output.asm").output().expect("nasm failed") );
+    print_command_output( Command::new("ld").arg("output.o").arg("-o").arg("program").output().expect("ld failed") );
+}
+
+pub fn create_assembly(program: Vec<Operation>, output: &str) -> io::Result<i32> {
     let mut file = File::create(output).expect("creation failed");
     writeln!(file, "bits 64")?;
     writeln!(file, ";;;")?;
@@ -85,7 +101,7 @@ pub fn compile_program(program: Vec<Operation>, output: &str) -> io::Result<i32>
     writeln!(file, " ")?;
     writeln!(file, "_start:")?;
 
-    for op in program {
+    for op in program.into_iter() {
         parse_word_to_op(&mut file, op)?;
     }
 
@@ -105,26 +121,26 @@ fn parse_word_to_op(file: &mut std::fs::File, op: Operation) -> Result<i32, io::
             writeln!(file, "    push {}", op.value)?;
         }
         Token::Dump => {
-            writeln!(file, "    ;; dump op")?;
+            writeln!(file, "    ;; dump")?;
             writeln!(file, "    pop rdi")?;
             writeln!(file, "    call print_num")?;
         }
         Token::Plus => {
-            writeln!(file, "    ;; plus op")?;
+            writeln!(file, "    ;; plus")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    pop  rbx")?;
             writeln!(file, "    add  rbx, rax")?;
             writeln!(file, "    push rbx")?;
         }
         Token::Minus => {
-            writeln!(file, "    ;; plus op")?;
+            writeln!(file, "    ;; plus")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    pop  rbx")?;
             writeln!(file, "    sub  rbx, rax")?;
             writeln!(file, "    push rbx")?;
         }
         Token::Eq => {
-            writeln!(file, "    ;; eq op")?;
+            writeln!(file, "    ;; eq")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    cmp   rbx, rax")?;
@@ -134,7 +150,7 @@ fn parse_word_to_op(file: &mut std::fs::File, op: Operation) -> Result<i32, io::
             writeln!(file, "    push  rbx")?;
         }
         Token::Le => {
-            writeln!(file, "    ;; le op")?;
+            writeln!(file, "    ;; le")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    cmp   rbx, rax")?;
@@ -144,7 +160,7 @@ fn parse_word_to_op(file: &mut std::fs::File, op: Operation) -> Result<i32, io::
             writeln!(file, "    push  rbx")?;
         }
         Token::Gr => {
-            writeln!(file, "    ;; gr op")?;
+            writeln!(file, "    ;; gr")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    cmp   rbx, rax")?;
@@ -154,17 +170,65 @@ fn parse_word_to_op(file: &mut std::fs::File, op: Operation) -> Result<i32, io::
             writeln!(file, "    push  rbx")?;
         }
         Token::End => {
-            writeln!(file, "    ;; end op")?;
+            writeln!(file, "    ;; end")?;
+            if op.value > 0 {
+                writeln!(file, "    jmp address_{}", op.value)?;
+            }
         }
         Token::If => {
-            writeln!(file, "    ;; if op")?;
+            writeln!(file, "    ;; if")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    cmp rax, 0")?;
-            writeln!(file, "    jz address_{}", op.value)?;
+            writeln!(file, "    jz  address_{}", op.value)?;
         }
         Token::Else => {
-            writeln!(file, "    ;; else op")?;
+            writeln!(file, "    ;; else")?;
             writeln!(file, "    jmp address_{}", op.value)?;
+        }
+        Token::Dup => {
+            writeln!(file, "    ;; dup")?;
+            writeln!(file, "    pop  rax")?;
+            writeln!(file, "    push rax")?;
+            writeln!(file, "    push rax")?;
+        }
+        Token::Do => {
+            writeln!(file, "    ;; do")?;
+            writeln!(file, "    pop  rax")?;
+            writeln!(file, "    cmp  rax, 0")?;
+            writeln!(file, "    jz   address_{}", op.value)?;
+        }
+        Token::While => {
+            writeln!(file, "    ;; while")?;
+            writeln!(file, "    ;  ignore")?;
+        }
+        Token::EqGr => {
+            writeln!(file, "    ;; eqgr")?;
+            writeln!(file, "    pop    rax")?;
+            writeln!(file, "    pop    rbx")?;
+            writeln!(file, "    cmp    rbx, rax")?;
+            writeln!(file, "    mov    rbx, 0")?;
+            writeln!(file, "    mov    rax, 1")?;
+            writeln!(file, "    cmovge rbx, rax")?;
+            writeln!(file, "    push   rbx")?;
+        }
+        Token::EqLe => {
+            writeln!(file, "    ;; eqle")?;
+            writeln!(file, "    pop    rax")?;
+            writeln!(file, "    pop    rbx")?;
+            writeln!(file, "    cmp    rbx, rax")?;
+            writeln!(file, "    mov    rbx, 0")?;
+            writeln!(file, "    mov    rax, 1")?;
+            writeln!(file, "    cmovle rbx, rax")?;
+            writeln!(file, "    push   rbx")?;
+        }
+        Token::Not => {
+            writeln!(file, "    ;; not")?;
+            writeln!(file, "    pop    rax")?;
+            writeln!(file, "    cmp    rax, 0")?;
+            writeln!(file, "    mov    rbx, 0")?;
+            writeln!(file, "    mov    rax, 1")?;
+            writeln!(file, "    cmovz  rbx, rax")?;
+            writeln!(file, "    push   rbx")?;
         }
     }
     Ok(0)

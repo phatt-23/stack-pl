@@ -2,63 +2,13 @@ use std::{env , str};
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-use std::process::Command;
 
 pub mod operation;
 use operation::Operation;
 pub mod token;
 use token::Token;
 pub mod compiler;
-
-
-fn simulate_program(program: Vec<Operation>) {
-    println!("[INFO]: Simulating the program");
-    let mut stack: Vec<i64> = Vec::new();
-
-    for op in program {
-        match op.token {
-            Token::Push => stack.push(op.value),
-            Token::Dump => {
-                let v = stack.pop();
-                println!("{}", v.unwrap());
-            }
-            Token::Plus => {
-                let b = stack.pop().unwrap();
-                let a = stack.pop().unwrap();
-                stack.push(a + b);
-            }
-            Token::Minus => {
-                let b = stack.pop().unwrap();
-                let a = stack.pop().unwrap();
-                stack.push(a - b);
-            }
-            Token::Eq => {
-                let b = stack.pop().unwrap();
-                let a = stack.pop().unwrap();
-                stack.push((a == b) as i64);
-            }
-            Token::Le => {
-                let b = stack.pop().unwrap();
-                let a = stack.pop().unwrap();
-                stack.push((a < b) as i64);
-            }
-            Token::Gr => {
-                let b = stack.pop().unwrap();
-                let a = stack.pop().unwrap();
-                stack.push((a > b) as i64);
-            }
-            Token::End => {
-                todo!();
-            }
-            Token::If => {
-                todo!();
-            }
-            Token::Else => {
-                todo!();
-            }
-        }
-    }
-}
+pub mod simulator;
 
 fn print_usage(args: Vec<String>) {
     println!("[ERROR]: Usage: {} <com|sim> <file>", &args[0].as_str());
@@ -94,15 +44,21 @@ fn lex_line(program: &mut Vec<Operation>,
         col = step_col(&line, col, |x| x != b' ');
         let mut advance_index = true;
         match w {
+            "dump" => program.push(operation::op_dump(ip)),
+            "dup" => program.push(operation::op_dup(ip)),
             "+" => program.push(operation::op_plus(ip)),
             "-" => program.push(operation::op_minus(ip)),
-            "dump" => program.push(operation::op_dump(ip)),
             "=" => program.push(operation::op_eq(ip)),
             "<" => program.push(operation::op_le(ip)),
             ">" => program.push(operation::op_gr(ip)),
+            "<=" => program.push(operation::op_eqle(ip)),
+            ">=" => program.push(operation::op_eqgr(ip)),
+            "!" | "not" => program.push(operation::op_not(ip)),
             "end" => program.push(operation::op_end(ip)),
             "if" => program.push(operation::op_if(ip)),
             "else" => program.push(operation::op_else(ip)),
+            "while" => program.push(operation::op_while(ip)),
+            "do" => program.push(operation::op_do(ip)),
             number => {
                 match number.parse::<i64>() {
                     Ok(v) => program.push(operation::op_push(ip, v)),
@@ -127,9 +83,7 @@ fn lex_file(filepath: &str, program: &mut Vec<Operation>) {
         let mut ip_counter = 0;
         for (row, line) in lines.enumerate() {
             match line {
-                Ok(l) => {
-                    ip_counter = lex_line(program, ip_counter, &String::from(filepath), row , l);
-                }
+                Ok(l) => ip_counter = lex_line(program, ip_counter, &String::from(filepath), row , l),
                 Err(e) => panic!("{}", e),
             }
         }
@@ -139,35 +93,50 @@ fn lex_file(filepath: &str, program: &mut Vec<Operation>) {
 
 fn crossreference_blocks(program: &mut Vec<Operation>) {
     let mut stack: Vec<usize> = Vec::new();
-    
-    for i in 0..program.len() {
-        match program[i].token {
+        
+    for ip in 0..program.len() {
+        match program[ip].token {
+            Token::If => stack.push(ip),
+            Token::While => stack.push(ip),
+            Token::Do => {
+                let while_index = stack.pop().unwrap();
+                let while_op = program[while_index];
+                program[ip].value = while_op.index as i64;
+                stack.push(ip);
+            }
+            Token::Else => {
+                let if_index = stack.pop().unwrap();
+                program[if_index].value = (ip + 1) as i64; 
+                stack.push(ip);
+            }
             Token::End => {
-                let if_else_ip = match stack.pop() {
-                    Some(ip) => ip,
-                    None => {println!("[ERROR]: 'End' token found without matching 'if' or 'else'"); return;}
-                };
-                let end_index = i;
-                let if_or_else_token = program[if_else_ip].token;
-                if if_or_else_token == Token::If || if_or_else_token == Token::Else {
-                    program[if_else_ip].value = end_index as i64;
+                let end_op = program[ip];
+                let prev_index = stack.pop().unwrap();
+                let prev_op = program[prev_index];
+                if prev_op.token == Token::If || prev_op.token == Token::Else {
+                    program[prev_index].value = end_op.index as i64;
                 }
-                if if_or_else_token == Token::Else {
-                    let if_index = match stack.pop() {
-                        Some(index) => index,
-                        None => {println!("[ERROR]: 'else' operation found without preceding 'if'"); return;}
-                    };
-                    if program[if_index].token == Token::If {
-                        program[if_index].value = program[if_else_ip].index as i64 + 1;
-                    }
+                if prev_op.token == Token::Do {
+                    program[ip].value = prev_op.value as i64;
+                    program[prev_index].value = (end_op.index + 1) as i64;
                 }
             }
-            Token::If | Token::Else => stack.push(i),
-            _ => {} // ignore other instructions
+            // ignore other instructions
+            Token::Push 
+                | Token::Dump 
+                | Token::Dup 
+                | Token::Plus 
+                | Token::Minus 
+                | Token::Eq 
+                | Token::Le 
+                | Token::Gr 
+                | Token::EqGr 
+                | Token::EqLe 
+                | Token::Not 
+                => {} 
         }
     }
 }
-
 
 fn main() {
     // check the command line arguments
@@ -187,23 +156,14 @@ fn main() {
 
     // simulate or compile the file
     match args[1].as_str() {
-        "sim" => simulate_program(program),
+        "sim" => simulator::simulate_program(program),
         "com" => {
-            compiler::compile_program(program, "output.asm").unwrap();
-            print_command_output( Command::new("nasm").arg("-felf64").arg("output.asm").output().expect("nasm failed") );
-            print_command_output( Command::new("ld").arg("output.o").arg("-o").arg("program").output().expect("ld failed") );
+            compiler::create_assembly(program, "output.asm").unwrap();
+            compiler::compile_assembly();
         }
         _ => print_usage(args),
     }
 }
 
 
-fn print_command_output(output: std::process::Output) {
-    if !&output.stdout.is_empty() {
-        println!("[INFO]: stdout: {}", String::from_utf8_lossy(&output.stdout));
-    }
-    if !&output.stderr.is_empty() {
-        println!("[ERROR]: stderr:\n{}", String::from_utf8_lossy(&output.stderr));
-        println!("[ERROR]: status:\n{}", output.status);
-    }
-}
+

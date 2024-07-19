@@ -78,12 +78,20 @@ section .text
 _start:
 address_0:
     ;; push op
-    push 1
+    push 0
 address_1:
-    ;; push op
-    push 3
+    ;; while
+    ;  ignore
 address_2:
-    ;; le op
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_3:
+    ;; push op
+    push 10
+address_4:
+    ;; le
     pop   rax
     pop   rbx
     cmp   rbx, rax
@@ -91,91 +99,35 @@ address_2:
     mov   rax, 1
     cmovl rbx, rax
     push  rbx
-address_3:
-    ;; if op
-    pop rax
-    cmp rax, 0
-    jz address_22
-address_4:
-    ;; push op
-    push 1234
 address_5:
-    ;; push op
-    push 1234
+    ;; do
+    pop  rax
+    cmp  rax, 0
+    jz   address_11
 address_6:
-    ;; eq op
-    pop   rax
-    pop   rbx
-    cmp   rbx, rax
-    mov   rbx, 0
-    mov   rax, 1
-    cmove rbx, rax
-    push  rbx
+    ;; dup
+    pop  rax
+    push rax
+    push rax
 address_7:
-    ;; if op
-    pop rax
-    cmp rax, 0
-    jz address_16
+    ;; dump
+    pop rdi
+    call print_num
 address_8:
     ;; push op
-    push 12
+    push 1
 address_9:
-    ;; push op
-    push 23
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
 address_10:
-    ;; le op
-    pop   rax
-    pop   rbx
-    cmp   rbx, rax
-    mov   rbx, 0
-    mov   rax, 1
-    cmovl rbx, rax
-    push  rbx
+    ;; end
+    jmp address_1
 address_11:
-    ;; if op
-    pop rax
-    cmp rax, 0
-    jz address_14
-address_12:
     ;; push op
-    push 12345
-address_13:
-    ;; dump op
-    pop rdi
-    call print_num
-address_14:
-    ;; end op
-address_15:
-    ;; else op
-    jmp address_18
-address_16:
-    ;; push op
-    push 54321
-address_17:
-    ;; dump op
-    pop rdi
-    call print_num
-address_18:
-    ;; end op
-address_19:
-    ;; push op
-    push 123
-address_20:
-    ;; dump op
-    pop rdi
-    call print_num
-address_21:
-    ;; else op
-    jmp address_24
-address_22:
-    ;; push op
-    push 321
-address_23:
-    ;; dump op
-    pop rdi
-    call print_num
-address_24:
-    ;; end op
+    push 0
     ;;; return
     mov rax, 0x3c
     mov rdi, 0

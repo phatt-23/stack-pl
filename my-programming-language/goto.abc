@@ -1,0 +1,4 @@
+goto label
+    123 dump
+label:
+    321 dump
