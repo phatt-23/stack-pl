@@ -10,28 +10,7 @@ use token::Token;
 pub mod compiler;
 pub mod simulator;
 
-fn print_usage(args: Vec<String>) {
-    println!("[ERROR]: Usage: {} <com|sim> <file>", &args[0].as_str());
-}
-
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>> where P: AsRef<Path> {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
-
-fn step_col(line: &String, index: usize, until: impl Fn(u8) -> bool) -> usize {
-    let mut i = index;
-    while i < line.len() && until(line.as_bytes()[i]) {
-        i += 1;
-    }
-    i
-}
-
-fn lex_line(program: &mut Vec<Operation>, 
-            ip: usize, 
-            filepath: &String, 
-            row: usize, 
-            line: String) -> usize 
+fn lex_line(program: &mut Vec<Operation>, ip: usize, filepath: &String, row: usize, line: String) -> usize 
 {
     println!("[INFO]: Raw line ({row}): {:?}", line);
     let inter: Vec<&str> = line.split("//").take(1).collect();
@@ -48,12 +27,16 @@ fn lex_line(program: &mut Vec<Operation>,
             "dup" => program.push(operation::op_dup(ip)),
             "+" => program.push(operation::op_plus(ip)),
             "-" => program.push(operation::op_minus(ip)),
+            "*" => program.push(operation::op_multiply(ip)),
+            "/" => program.push(operation::op_divide(ip)),
+            "%" => program.push(operation::op_modulo(ip)),
             "=" => program.push(operation::op_eq(ip)),
+            "!=" => program.push(operation::op_not_eq(ip)),
             "<" => program.push(operation::op_le(ip)),
             ">" => program.push(operation::op_gr(ip)),
-            "<=" => program.push(operation::op_eqle(ip)),
-            ">=" => program.push(operation::op_eqgr(ip)),
-            "!" | "not" => program.push(operation::op_not(ip)),
+            "<=" => program.push(operation::op_eq_le(ip)),
+            ">=" => program.push(operation::op_eq_gr(ip)),
+            "!" => program.push(operation::op_not(ip)),
             "end" => program.push(operation::op_end(ip)),
             "if" => program.push(operation::op_if(ip)),
             "else" => program.push(operation::op_else(ip)),
@@ -63,7 +46,7 @@ fn lex_line(program: &mut Vec<Operation>,
                 match number.parse::<i64>() {
                     Ok(v) => program.push(operation::op_push(ip, v)),
                     Err(e) => {
-                        println!("[ERROR] Syntax: {}:{}:{}:, {:?}, {:?}", filepath, row + 1, col + 1, w, e);
+                        println!("[ERROR] Unknown Token: {}:{}:{}:, {:?}, {:?}", filepath, row + 1, col + 1, w, e);
                         advance_index = false;
                     }
                 }
@@ -127,7 +110,11 @@ fn crossreference_blocks(program: &mut Vec<Operation>) {
                 | Token::Dup 
                 | Token::Plus 
                 | Token::Minus 
+                | Token::Multiply
+                | Token::Divide
+                | Token::Modulo
                 | Token::Eq 
+                | Token::NotEq 
                 | Token::Le 
                 | Token::Gr 
                 | Token::EqGr 
@@ -146,8 +133,9 @@ fn main() {
         return;
     }
 
-    let mut program: Vec<Operation> = Vec::new(); // compose the program from given file
-    // open the file
+    // open the file and
+    // compose the program from given file
+    let mut program: Vec<Operation> = Vec::new(); 
     let input_filepath = args[2].as_str();
     lex_file(input_filepath, &mut program);
     for op in &program {
@@ -159,11 +147,26 @@ fn main() {
         "sim" => simulator::simulate_program(program),
         "com" => {
             compiler::create_assembly(program, "output.asm").unwrap();
-            compiler::compile_assembly();
+            compiler::compile_assembly("program");
         }
         _ => print_usage(args),
     }
 }
 
+fn print_usage(args: Vec<String>) {
+    println!("[ERROR]: Usage: {} <com|sim> <file>", &args[0].as_str());
+}
 
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>> where P: AsRef<Path> {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
+
+fn step_col(line: &String, index: usize, until: impl Fn(u8) -> bool) -> usize {
+    let mut i = index;
+    while i < line.len() && until(line.as_bytes()[i]) {
+        i += 1;
+    }
+    i
+}
 

@@ -15,9 +15,9 @@ fn print_command_output(output: std::process::Output) {
     }
 }
 
-pub fn compile_assembly() {
+pub fn compile_assembly(executable: &str) {
     print_command_output( Command::new("nasm").arg("-felf64").arg("output.asm").output().expect("nasm failed") );
-    print_command_output( Command::new("ld").arg("output.o").arg("-o").arg("program").output().expect("ld failed") );
+    print_command_output( Command::new("ld").arg("output.o").arg("-o").arg(executable).output().expect("ld failed") );
 }
 
 pub fn create_assembly(program: Vec<Operation>, output: &str) -> io::Result<i32> {
@@ -57,9 +57,9 @@ pub fn create_assembly(program: Vec<Operation>, output: &str) -> io::Result<i32>
     writeln!(file, "        call sys_write_stdout")?;
     writeln!(file, "        pop rdi")?;
     writeln!(file, "    .positive:")?;
-    writeln!(file, "    mov rax, rdi")?;
-    writeln!(file, "    mov rbx, 10")?;
-    writeln!(file, "    xor rcx, rcx")?;
+    writeln!(file, "        mov rax, rdi")?;
+    writeln!(file, "        mov rbx, 10")?;
+    writeln!(file, "        xor rcx, rcx")?;
     writeln!(file, "    .loop1:")?;
     writeln!(file, "        cmp rax, 0")?;
     writeln!(file, "        jle .done1")?;
@@ -149,6 +149,16 @@ fn parse_word_to_op(file: &mut std::fs::File, op: Operation) -> Result<i32, io::
             writeln!(file, "    cmove rbx, rax")?;
             writeln!(file, "    push  rbx")?;
         }
+        Token::NotEq => {
+            writeln!(file, "    ;; not eq")?;
+            writeln!(file, "    pop    rax")?;
+            writeln!(file, "    pop    rbx")?;
+            writeln!(file, "    cmp    rbx, rax")?;
+            writeln!(file, "    mov    rbx, 0")?;
+            writeln!(file, "    mov    rax, 1")?;
+            writeln!(file, "    cmovne rbx, rax")?;
+            writeln!(file, "    push   rbx")?;
+        }
         Token::Le => {
             writeln!(file, "    ;; le")?;
             writeln!(file, "    pop   rax")?;
@@ -229,6 +239,30 @@ fn parse_word_to_op(file: &mut std::fs::File, op: Operation) -> Result<i32, io::
             writeln!(file, "    mov    rax, 1")?;
             writeln!(file, "    cmovz  rbx, rax")?;
             writeln!(file, "    push   rbx")?;
+        }
+        Token::Multiply => {
+            writeln!(file, "    ;; mult")?;
+            writeln!(file, "    pop   rbx")?;
+            writeln!(file, "    pop   rax")?;
+            writeln!(file, "    cqo")?;
+            writeln!(file, "    imul  rbx")?; // rax * rbx = rdx:rax (128-bit integer)
+            writeln!(file, "    push  rax")?;
+        }
+        Token::Divide => {
+            writeln!(file, "    ;; divide")?;
+            writeln!(file, "    pop   rbx")?;
+            writeln!(file, "    pop   rax")?;
+            writeln!(file, "    cqo")?;
+            writeln!(file, "    idiv  rbx")?; // rax / rbx = rax     remainder rdx
+            writeln!(file, "    push  rax")?;
+        }
+        Token::Modulo => {
+            writeln!(file, "    ;; modulo")?;
+            writeln!(file, "    pop   rbx")?;
+            writeln!(file, "    pop   rax")?;
+            writeln!(file, "    cqo")?;
+            writeln!(file, "    idiv  rbx")?; // rax / rbx = rax     remainder rdx
+            writeln!(file, "    push  rdx")?;
         }
     }
     Ok(0)
