@@ -7,7 +7,8 @@ The compiler generates 'x86_64 intel' assembly code which is then compiled with 
 - [x] Logic operators
 - [x] If-Else statements
 - [x] Loops (while loop)
-- [ ] Memory Access
+- [x] Memory Access
+- [x] Bitwise
 - [ ] Types
 
 Command to compile and run the code.
