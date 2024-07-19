@@ -9,6 +9,26 @@ pub struct Operation {
     pub value: i64,
 }
 
+pub fn op_syscall_1(index: usize) -> Operation {
+    Operation { index, token: Token::Syscall1, value: DEFAULT_VALUE }
+}
+
+pub fn op_syscall_3(index: usize) -> Operation {
+    Operation { index, token: Token::Syscall3, value: DEFAULT_VALUE }
+}
+
+pub fn op_store(index: usize) -> Operation {
+    Operation { index, token: Token::Store, value: DEFAULT_VALUE }
+}
+
+pub fn op_load(index: usize) -> Operation {
+    Operation { index, token: Token::Load, value: DEFAULT_VALUE }
+}
+
+pub fn op_memory(index: usize) -> Operation {
+    Operation { index, token: Token::Memory, value: DEFAULT_VALUE }
+}
+
 pub fn op_multiply(index: usize) -> Operation {
     Operation { index, token: Token::Multiply, value: DEFAULT_VALUE }
 }

@@ -10,6 +10,20 @@ use token::Token;
 pub mod compiler;
 pub mod simulator;
 
+fn lex_file(filepath: &str, program: &mut Vec<Operation>) {
+    if let Ok(lines) = read_lines(filepath) {
+        println!("[INFO]: reading the program from '{}'", filepath);
+        let mut ip_counter = 0;
+        for (row, line) in lines.enumerate() {
+            match line {
+                Ok(l) => ip_counter = lex_line(program, ip_counter, &String::from(filepath), row , l),
+                Err(e) => panic!("{}", e),
+            }
+        }
+        crossreference_blocks(program);
+    }
+}
+
 fn lex_line(program: &mut Vec<Operation>, ip: usize, filepath: &String, row: usize, line: String) -> usize 
 {
     println!("[INFO]: Raw line ({row}): {:?}", line);
@@ -42,6 +56,11 @@ fn lex_line(program: &mut Vec<Operation>, ip: usize, filepath: &String, row: usi
             "else" => program.push(operation::op_else(ip)),
             "while" => program.push(operation::op_while(ip)),
             "do" => program.push(operation::op_do(ip)),
+            "mem" => program.push(operation::op_memory(ip)),
+            "load" => program.push(operation::op_load(ip)),
+            "store" => program.push(operation::op_store(ip)),
+            "syscall1" => program.push(operation::op_syscall_1(ip)),
+            "syscall3" => program.push(operation::op_syscall_3(ip)),
             number => {
                 match number.parse::<i64>() {
                     Ok(v) => program.push(operation::op_push(ip, v)),
@@ -58,20 +77,6 @@ fn lex_line(program: &mut Vec<Operation>, ip: usize, filepath: &String, row: usi
         }
     }
     ip
-}
-
-fn lex_file(filepath: &str, program: &mut Vec<Operation>) {
-    if let Ok(lines) = read_lines(filepath) {
-        println!("[INFO]: reading the program from '{}'", filepath);
-        let mut ip_counter = 0;
-        for (row, line) in lines.enumerate() {
-            match line {
-                Ok(l) => ip_counter = lex_line(program, ip_counter, &String::from(filepath), row , l),
-                Err(e) => panic!("{}", e),
-            }
-        }
-        crossreference_blocks(program);
-    }
 }
 
 fn crossreference_blocks(program: &mut Vec<Operation>) {
@@ -120,6 +125,10 @@ fn crossreference_blocks(program: &mut Vec<Operation>) {
                 | Token::EqGr 
                 | Token::EqLe 
                 | Token::Not 
+                | Token::Memory
+                | Token::Load
+                | Token::Store
+                | Token::Syscall1 | Token::Syscall3
                 => {} 
         }
     }
@@ -133,8 +142,7 @@ fn main() {
         return;
     }
 
-    // open the file and
-    // compose the program from given file
+    // open the file and compose the program from given file
     let mut program: Vec<Operation> = Vec::new(); 
     let input_filepath = args[2].as_str();
     lex_file(input_filepath, &mut program);
@@ -144,9 +152,9 @@ fn main() {
 
     // simulate or compile the file
     match args[1].as_str() {
-        "sim" => simulator::simulate_program(program),
+        "sim" => simulator::simulate_program(&program),
         "com" => {
-            compiler::create_assembly(program, "output.asm").unwrap();
+            compiler::create_assembly(&program, "output.asm").unwrap();
             compiler::compile_assembly("program");
         }
         _ => print_usage(args),

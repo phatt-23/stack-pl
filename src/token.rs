@@ -2,30 +2,38 @@
 #[derive(PartialEq)]
 #[derive(Clone, Copy)]
 pub enum Token {
-    // stack manip
+    // Stack manip
     Push,
     Dup,
+    // IO
     Dump,
-    // binary arithmetic operators
+    // Binary arithmetic operators
     Plus,
     Minus,
     Multiply,
     Divide,
     Modulo,
-    // binary logic operators
+    // Binary logic operators
     Eq,
     NotEq,
     Le,
     Gr,
     EqGr,
     EqLe,
-    // unary logic operators
+    // Unary logic operators
     Not,
-    // block enclosing
+    // Block enclosing
     End,
-    // block headers
+    // Block headers
     If,
     Else,
     While,
     Do,
+    // Memory operators
+    Memory,
+    Load,
+    Store,
+    // Syscall
+    Syscall3,
+    Syscall1,
 }
