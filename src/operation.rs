@@ -1,7 +1,5 @@
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-#[derive(Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum OperationType {
     // Stack
     Push,
@@ -50,32 +48,41 @@ use super::location::Location;
 
 #[derive(Debug, Clone)]
 pub struct Operation {
-    pub index: usize,
-    pub op_type: OperationType,
-    pub value: i64,
-    
     pub loc: Location,
+    pub op_type: OperationType,
+    pub address: usize,
+    pub value: i32,
+    pub jump: i32,
 }
-static DEFAULT_VALUE: i64 = -255; 
+
 
 impl Operation {
-    pub fn new(token: OperationType, index: usize, loc: &Location) -> Self {
+    const DEFAULT_VALUE: i32 = -255;
+    const DEFAULT_JUMP: i32 = -255;
+    pub fn new(address: usize, op_type: OperationType, loc: &Location) -> Self {
         Self { 
-            index, 
-            op_type: 
-            token, 
-            value: DEFAULT_VALUE, 
-            loc: loc.clone()
+            loc: loc.clone(),
+            op_type,
+            address,
+            jump: Operation::DEFAULT_JUMP,
+            value: Operation::DEFAULT_VALUE, 
         }
     }
-    pub fn new_with_value(token: OperationType, value: i64, index: usize, loc: &Location) -> Self {
+    pub fn new_with_value(address: usize, op_type: OperationType, value: i32, loc: &Location) -> Self {
         Self { 
-            index, 
-            op_type: 
-            token, 
-            value, 
-            loc: loc.clone()
+            loc: loc.clone(),
+            op_type, 
+            address,
+            jump: Operation::DEFAULT_JUMP,
+            value,
         }
     }
 }
 
+impl std::fmt::Display for Operation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let op_type = format!("{:?}", self.op_type);
+        write!(f, "Operation \t{} \top_type: {:<12} \tvalue: {:<5?} \taddress: {:<3} \tjump {:<3}", 
+            self.loc, op_type, self.value, self.address, self.jump)
+    }
+}

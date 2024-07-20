@@ -8,7 +8,7 @@ section .data
     ALPHABET_UPPER: db "abcdefghijklmnopqrstuvwxyz", 0x00
     ;;;
 section .bss
-    MEMORY: resb 1000000
+    MEMORY: resb 64000
     ;;;
 section .text
     ;;;

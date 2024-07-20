@@ -1,24 +1,45 @@
-use std::mem;
-use std::io::{self, Write};
 use std::fs::File;
+use std::io::{self, Write};
+use std::mem;
 use std::process::Command;
 
-use super::operation::{OperationType, Operation};
+use super::operation::{Operation, OperationType};
 
 fn print_command_output(output: std::process::Output) {
     if !&output.stdout.is_empty() {
-        println!("[INFO]: stdout: {}", String::from_utf8_lossy(&output.stdout));
+        println!(
+            "[INFO]: stdout: {}",
+            String::from_utf8_lossy(&output.stdout)
+        );
     }
     if !&output.stderr.is_empty() {
-        println!("[ERROR]: stderr:\n{}", String::from_utf8_lossy(&output.stderr));
+        println!(
+            "[ERROR]: stderr:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         println!("[ERROR]: status:\n{}", output.status);
     }
 }
 
 pub fn compile_assembly(executable: &str) {
-    print_command_output( Command::new("nasm").arg("-felf64").arg("output.asm").output().expect("nasm failed") );
-    print_command_output( Command::new("ld").arg("output.o").arg("-o").arg(executable).output().expect("ld failed") );
+    print_command_output(
+        Command::new("nasm")
+            .arg("-felf64")
+            .arg("output.asm")
+            .output()
+            .expect("nasm failed"),
+    );
+    print_command_output(
+        Command::new("ld")
+            .arg("output.o")
+            .arg("-o")
+            .arg(executable)
+            .output()
+            .expect("ld failed"),
+    );
 }
+
+const MEMORY_SIZE: usize = 64_000;
 
 pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32> {
     let mut file = File::create(output).expect("creation failed");
@@ -29,10 +50,13 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
     writeln!(file, "    FD_STDOUT:      dq 1")?;
     writeln!(file, "    SYSCALL_WRITE:  dq 1")?;
     writeln!(file, "    SYSCALL_EXIT:   dq 60")?;
-    writeln!(file, "    ALPHABET_UPPER: db \"abcdefghijklmnopqrstuvwxyz\", 0x00")?;
+    writeln!(
+        file,
+        "    ALPHABET_UPPER: db \"abcdefghijklmnopqrstuvwxyz\", 0x00"
+    )?;
     writeln!(file, "    ;;;")?;
     writeln!(file, "section .bss")?;
-    writeln!(file, "    MEMORY: resb {}", 1_000_000)?;
+    writeln!(file, "    MEMORY: resb {}", MEMORY_SIZE)?;
     writeln!(file, "    ;;;")?;
     writeln!(file, "section .text")?;
     writeln!(file, "    ;;;")?;
@@ -102,8 +126,8 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
     writeln!(file, " ")?;
     writeln!(file, "_start:")?;
 
-    for op in program.into_iter() {
-        generate_operation(&mut file, op)?;
+    for (index, op) in program.iter().enumerate() {
+        generate_operation(&mut file, index, op)?;
     }
 
     // writeln!(file, "address_{}:", program.len())?;
@@ -115,10 +139,14 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
     Ok(0)
 }
 
-fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, io::Error> {
-    writeln!(file, "address_{}:", op.index)?;
+fn generate_operation(
+    file: &mut std::fs::File,
+    index: usize,
+    op: &Operation,
+) -> Result<i32, io::Error> {
+    writeln!(file, "address_{}:", index)?;
     match op.op_type {
-    /* -------------------------------- // Stack -------------------------------- */
+        /* -------------------------------- // Stack -------------------------------- */
         OperationType::Push => {
             writeln!(file, "    ;; push op")?;
             writeln!(file, "    push {}", op.value)?;
@@ -131,7 +159,7 @@ fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, i
         OperationType::Drop => {
             writeln!(file, "    ;; drop")?;
             writeln!(file, "    add rsp, {}", mem::size_of::<usize>())?; // system dependent
-        }        
+        }
         OperationType::Duplicate => {
             writeln!(file, "    ;; dup")?;
             writeln!(file, "    pop  rax")?;
@@ -146,7 +174,7 @@ fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, i
             writeln!(file, "    push rax")?;
             writeln!(file, "    push rbx")?;
             writeln!(file, "    push rax")?;
-        }            
+        }
         OperationType::Over => {
             writeln!(file, "    ;; over")?;
             writeln!(file, "    pop  rax")?;
@@ -162,7 +190,7 @@ fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, i
             writeln!(file, "    push rax")?;
             writeln!(file, "    push rbx")?;
         }
-    /* ------------------------------ // Arithmetic ----------------------------- */
+        /* ------------------------------ // Arithmetic ----------------------------- */
         OperationType::Add => {
             writeln!(file, "    ;; plus")?;
             writeln!(file, "    pop  rax")?;
@@ -201,7 +229,7 @@ fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, i
             writeln!(file, "    idiv  rbx")?; // rax / rbx = rax     remainder rdx
             writeln!(file, "    push  rdx")?;
         }
-    /* -------------------------------- // Logic -------------------------------- */
+        /* -------------------------------- // Logic -------------------------------- */
         OperationType::Equal => {
             writeln!(file, "    ;; eq")?;
             writeln!(file, "    pop   rax")?;
@@ -271,7 +299,7 @@ fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, i
             writeln!(file, "    cmovz  rbx, rax")?;
             writeln!(file, "    push   rbx")?;
         }
-    /* ------------------------------- // Bitwise ------------------------------- */
+        /* ------------------------------- // Bitwise ------------------------------- */
         OperationType::BitAnd => {
             writeln!(file, "    ;; bit and")?;
             writeln!(file, "    pop   rax")?;
@@ -300,34 +328,34 @@ fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, i
             writeln!(file, "    shl   rbx, cl")?;
             writeln!(file, "    push  rbx")?;
         }
-    /* ---------------------------------- // Block --------------------------------- */
+        /* ---------------------------------- // Block --------------------------------- */
         OperationType::End => {
             writeln!(file, "    ;; end")?;
-            if op.value >= 0 {
-                writeln!(file, "    jmp address_{}", op.value)?;
+            if op.jump >= 0 {
+                writeln!(file, "    jmp address_{}", op.jump)?;
             }
         }
         OperationType::If => {
             writeln!(file, "    ;; if")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    cmp rax, 0")?;
-            writeln!(file, "    jz  address_{}", op.value)?;
+            writeln!(file, "    jz  address_{}", op.jump)?;
         }
         OperationType::Else => {
             writeln!(file, "    ;; else")?;
-            writeln!(file, "    jmp address_{}", op.value)?;
+            writeln!(file, "    jmp address_{}", op.jump)?;
         }
         OperationType::Do => {
             writeln!(file, "    ;; do")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    cmp  rax, 0")?;
-            writeln!(file, "    jz   address_{}", op.value)?;
+            writeln!(file, "    jz   address_{}", op.jump)?;
         }
         OperationType::While => {
             writeln!(file, "    ;; while")?;
             writeln!(file, "    ;  ignore")?;
         }
-    /* -------------------------------- // Memory ------------------------------- */
+        /* -------------------------------- // Memory ------------------------------- */
         OperationType::MemoryPush => {
             writeln!(file, "    ;; mem")?;
             writeln!(file, "    push MEMORY")?; // push the address of MEMORY in .bss
@@ -345,7 +373,7 @@ fn generate_operation(file: &mut std::fs::File, op: &Operation) -> Result<i32, i
             writeln!(file, "    pop rax")?; // address
             writeln!(file, "    mov byte [rax], bl")?; // address
         }
-    /* ------------------------------- // Syscall ------------------------------- */
+        /* ------------------------------- // Syscall ------------------------------- */
         OperationType::Syscall1 => {
             writeln!(file, "    ;; syscall1")?;
             writeln!(file, "    pop rax")?;

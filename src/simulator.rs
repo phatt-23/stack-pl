@@ -1,10 +1,10 @@
 use super::operation::{Operation, OperationType};
 
-const MEMORY_SIZE: usize = 640_000;
+const MEMORY_SIZE: usize = 64_000;
 
 pub fn simulate_program(program: &Vec<Operation>) {
     println!("[INFO]: Simulating the program");
-    let mut stack: Vec<i64> = Vec::new();
+    let mut stack: Vec<i32> = Vec::new();
     let mut memory: [u8; MEMORY_SIZE] = [0; MEMORY_SIZE];
 
     let mut ip: usize = 0;
@@ -71,61 +71,61 @@ pub fn simulate_program(program: &Vec<Operation>) {
             OperationType::Multiply => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <multiply> '*' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <multiply> '*' expects 2 operands (second)", op.loc));
-                stack.push((a * b) as i64);
+                stack.push((a * b) as i32);
                 ip += 1;
             }
             OperationType::Divide => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <divide> '/' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <divide> '/' expects 2 operands (second)", op.loc));
-                stack.push((a / b) as i64);
+                stack.push((a / b) as i32);
                 ip += 1;
             }
             OperationType::Modulo => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
-                stack.push((a % b) as i64);
+                stack.push((a % b) as i32);
                 ip += 1;
             }
         /* -------------------------------- // Logic -------------------------------- */
             OperationType::Equal => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal> '=' expects 2 operands (first operand)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal> '=' expects 2 operands (second operand)", op.loc));
-                stack.push((a == b) as i64);
+                stack.push((a == b) as i32);
                 ip += 1;
             }
             OperationType::NotEqual => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <not-equal> '!=' expects 2 operands (first operand)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <not-equal> '!=' expects 2 operands (second operand)", op.loc));
-                stack.push((a != b) as i64);
+                stack.push((a != b) as i32);
                 ip += 1;
             }
             OperationType::Less => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <less> '<' expects 2 operands (first operand)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <less> '<' expects 2 operands (second operand)", op.loc));
-                stack.push((a < b) as i64);
+                stack.push((a < b) as i32);
                 ip += 1;
             }
             OperationType::Greater => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <greater> '>' expects 2 operands (first operand)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <greater> '>' expects 2 operands (second operand)", op.loc));
-                stack.push((a > b) as i64);
+                stack.push((a > b) as i32);
                 ip += 1;
             }
             OperationType::GreaterEqual => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-greater> '>=' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-greater> '>=' expects 2 operands (second)", op.loc));
-                stack.push((a >= b) as i64);
+                stack.push((a >= b) as i32);
                 ip += 1;
             }
             OperationType::LessEqual => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-less> '<=' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-less> '<=' expects 2 operands (second)", op.loc));
-                stack.push((a <= b) as i64);
+                stack.push((a <= b) as i32);
                 ip += 1;
             }
             OperationType::Not => {
                 let a = stack.pop().unwrap() != 0;
-                stack.push((!a) as i64);
+                stack.push((!a) as i32);
                 ip += 1;
             }
         /* -------------------------------- // Block -------------------------------- */
@@ -163,25 +163,25 @@ pub fn simulate_program(program: &Vec<Operation>) {
             OperationType::BitAnd => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <bit-and> '&' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <bit-and> '&' expects 2 operands (second)", op.loc));
-                stack.push((a & b) as i64);
+                stack.push((a & b) as i32);
                 ip += 1;
             }
             OperationType::BitOr => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
-                stack.push((a | b) as i64);
+                stack.push((a | b) as i32);
                 ip += 1;
             }
             OperationType::ShiftRight => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
-                stack.push((a >> b) as i64);
+                stack.push((a >> b) as i32);
                 ip += 1;
             }
             OperationType::ShiftLeft => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
-                stack.push((a << b) as i64);
+                stack.push((a << b) as i32);
                 ip += 1;
             }
         /* -------------------------------- // Memory ------------------------------- */
@@ -191,7 +191,7 @@ pub fn simulate_program(program: &Vec<Operation>) {
             }
             OperationType::MemoryLoad => {
                 let mem_index = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <load> 'load' expects 1 operand", op.loc)) as usize;
-                let value = memory[mem_index] as i64;
+                let value = memory[mem_index] as i32;
                 stack.push(value);
                 ip += 1;
             }

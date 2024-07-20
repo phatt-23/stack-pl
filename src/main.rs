@@ -18,14 +18,14 @@ fn main() {
     let tokens = lexer::lex_file(filepath); // lex a file to tokens
     
     for t in &tokens {
-        println!("[INFO token]: {:?}", t);
+        println!("[INFO token]: {t}");
     }
 
     // parse tokens to operations
     let operations = lexer::parse_tokens_to_operations(&tokens);
     
     for o in &operations {
-        println!("[INFO op]: {:?}", o);
+        println!("[INFO op]: {o}");
     }
 
     
