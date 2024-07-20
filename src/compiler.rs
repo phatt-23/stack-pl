@@ -3,8 +3,7 @@ use std::io::{self, Write};
 use std::fs::File;
 use std::process::Command;
 
-use super::Token;
-use super::Operation;
+use super::operation::{Operation, Token};
 
 fn print_command_output(output: std::process::Output) {
     if !&output.stdout.is_empty() {
@@ -146,6 +145,21 @@ fn parse_word_to_op(file: &mut std::fs::File, op: &Operation) -> Result<i32, io:
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    push rax")?;
             writeln!(file, "    push rax")?;
+        }
+        Token::Over => {
+            writeln!(file, "    ;; over")?;
+            writeln!(file, "    pop  rax")?;
+            writeln!(file, "    pop  rbx")?;
+            writeln!(file, "    push rbx")?;
+            writeln!(file, "    push rax")?;
+            writeln!(file, "    push rbx")?;
+        }
+        Token::Swap => {
+            writeln!(file, "    ;; swap")?;
+            writeln!(file, "    pop  rax")?;
+            writeln!(file, "    pop  rbx")?;
+            writeln!(file, "    push rax")?;
+            writeln!(file, "    push rbx")?;
         }
         Token::Plus => {
             writeln!(file, "    ;; plus")?;
