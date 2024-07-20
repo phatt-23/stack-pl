@@ -29,6 +29,9 @@ fn main() {
     }
 
     
+
+
+
     // simulate or compile the file
     let program = &operations;
     match args[1].as_str() {

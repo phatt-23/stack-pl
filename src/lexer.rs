@@ -20,7 +20,11 @@ pub fn lex_file(file: &str) -> Vec<Token> {
 fn lex_line(file: &str, row: usize, line: String) -> Vec<Token>
 {
     let mut program: Vec<Token> = Vec::new();
-    let inter: Vec<&str> = line.split("//").take(1).collect();
+    let inter: Vec<&str> = line.split("//").take
+    
+    
+    
+    (1).collect();
     let words: Vec<&str> = inter.iter().flat_map(|&s| s.split_whitespace()).collect();
     println!("[INFO]: Raw line ({row}): {:?}", line);
     println!("[INFO]: Splitted ({row}): {:?}", words);
