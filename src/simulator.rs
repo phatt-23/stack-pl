@@ -1,4 +1,4 @@
-use super::operation::{Operation, Token};
+use super::operation::{Operation, OperationType};
 
 const MEMORY_SIZE: usize = 640_000;
 
@@ -10,208 +10,214 @@ pub fn simulate_program(program: &Vec<Operation>) {
     let mut ip: usize = 0;
     while ip < program.len() {
         let op = &program[ip];
-        match op.token {
-            Token::Push => {
+        match op.op_type {
+        /* -------------------------------- // Stack -------------------------------- */
+            OperationType::Push => {
                 stack.push(op.value);
                 ip += 1;
             }
-            Token::Dump => {
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <dump> 'dump' expects 1 operand", op.file, op.row, op.col));
+            OperationType::Dump => {
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <dump> 'dump' expects 1 operand", op.loc));
                 println!("{a}");
                 ip += 1;
             }
-            Token::Drop => {
-                stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <drop> 'drop' expects 1 operand", op.file, op.row, op.col));
+            OperationType::Drop => {
+                stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <drop> 'drop' expects 1 operand", op.loc));
                 ip += 1;
             }
-            Token::Dup => {
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <duplicate> 'dup' expects 1 operand", op.file, op.row, op.col));
+            OperationType::Duplicate => {
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <duplicate> 'dup' expects 1 operand", op.loc));
                 stack.push(a);
                 stack.push(a);
                 ip += 1;
             }
-            Token::Dup2 => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (second)", op.file, op.row, op.col));
+            OperationType::Duplicate2 => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (second)", op.loc));
                 stack.push(a);
                 stack.push(b);
                 stack.push(a);
                 stack.push(b);
                 ip += 1;
             }
-            Token::Over => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (second)", op.file, op.row, op.col));
+            OperationType::Over => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (second)", op.loc));
                 stack.push(a);
                 stack.push(b);
                 stack.push(a);
                 ip += 1;   
             }
-            Token::Swap => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (second)", op.file, op.row, op.col));
+            OperationType::Swap => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <duplicate-2> 'dup2' expects 2 operands (second)", op.loc));
                 stack.push(b);
                 stack.push(a);
                 ip += 1;     
             }
-            Token::Plus => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <plus> '+' expects 2 operands (first operand)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <plus> '+' expects 2 operands (second operand)", op.file, op.row, op.col));
+        /* ------------------------------ // Arithmetic ----------------------------- */
+            OperationType::Add => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <plus> '+' expects 2 operands (first operand)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <plus> '+' expects 2 operands (second operand)", op.loc));
                 stack.push(a + b);
                 ip += 1;
             }
-            Token::Minus => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <minus> '-' expects 2 operands (first operand)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <minus> '-' expects 2 operands (second operand)", op.file, op.row, op.col));
+            OperationType::Subtract => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <minus> '-' expects 2 operands (first operand)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <minus> '-' expects 2 operands (second operand)", op.loc));
                 stack.push(a - b);
                 ip += 1;
             }
-            Token::Eq => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <equal> '=' expects 2 operands (first operand)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <equal> '=' expects 2 operands (second operand)", op.file, op.row, op.col));
+            OperationType::Multiply => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <multiply> '*' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <multiply> '*' expects 2 operands (second)", op.loc));
+                stack.push((a * b) as i64);
+                ip += 1;
+            }
+            OperationType::Divide => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <divide> '/' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <divide> '/' expects 2 operands (second)", op.loc));
+                stack.push((a / b) as i64);
+                ip += 1;
+            }
+            OperationType::Modulo => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
+                stack.push((a % b) as i64);
+                ip += 1;
+            }
+        /* -------------------------------- // Logic -------------------------------- */
+            OperationType::Equal => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal> '=' expects 2 operands (first operand)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal> '=' expects 2 operands (second operand)", op.loc));
                 stack.push((a == b) as i64);
                 ip += 1;
             }
-            Token::NotEq => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <not-equal> '!=' expects 2 operands (first operand)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <not-equal> '!=' expects 2 operands (second operand)", op.file, op.row, op.col));
+            OperationType::NotEqual => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <not-equal> '!=' expects 2 operands (first operand)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <not-equal> '!=' expects 2 operands (second operand)", op.loc));
                 stack.push((a != b) as i64);
                 ip += 1;
             }
-            Token::Le => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <less> '<' expects 2 operands (first operand)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <less> '<' expects 2 operands (second operand)", op.file, op.row, op.col));
+            OperationType::Less => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <less> '<' expects 2 operands (first operand)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <less> '<' expects 2 operands (second operand)", op.loc));
                 stack.push((a < b) as i64);
                 ip += 1;
             }
-            Token::Gr => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <greater> '>' expects 2 operands (first operand)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <greater> '>' expects 2 operands (second operand)", op.file, op.row, op.col));
+            OperationType::Greater => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <greater> '>' expects 2 operands (first operand)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <greater> '>' expects 2 operands (second operand)", op.loc));
                 stack.push((a > b) as i64);
                 ip += 1;
             }
-            Token::End => {
+            OperationType::GreaterEqual => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-greater> '>=' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-greater> '>=' expects 2 operands (second)", op.loc));
+                stack.push((a >= b) as i64);
+                ip += 1;
+            }
+            OperationType::LessEqual => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-less> '<=' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <equal-less> '<=' expects 2 operands (second)", op.loc));
+                stack.push((a <= b) as i64);
+                ip += 1;
+            }
+            OperationType::Not => {
+                let a = stack.pop().unwrap() != 0;
+                stack.push((!a) as i64);
+                ip += 1;
+            }
+        /* -------------------------------- // Block -------------------------------- */
+            OperationType::End => {
                 if op.value >= 0 {
                     ip = op.value as usize;
                     continue;
                 }
                 ip += 1;
             }
-            Token::If => {
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <if-statement> 'if' expects 1 operand", op.file, op.row, op.col)) != 0;
+            OperationType::If => {
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <if-statement> 'if' expects 1 operand", op.loc)) != 0;
                 if a == false {
                     ip = op.value as usize;
                     continue;
                 }
                 ip += 1;
             }
-            Token::Else => {
+            OperationType::Else => {
                 ip = op.value as usize;
                 ip += 1;
             }
-            Token::Do => {
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <do-statement> 'do' expects 1 operand", op.file, op.row, op.col)) != 0;
+            OperationType::Do => {
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <do-statement> 'do' expects 1 operand", op.loc)) != 0;
                 if a == false {
                     ip = op.value as usize;
                     continue;
                 }
                 ip += 1;
             }
-            Token::While => {
-                // nothing
+            OperationType::While => {
                 ip += 1;
             }
-            Token::EqGr => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <equal-greater> '>=' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <equal-greater> '>=' expects 2 operands (second)", op.file, op.row, op.col));
-                stack.push((a >= b) as i64);
-                ip += 1;
-            }
-            Token::EqLe => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <equal-less> '<=' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <equal-less> '<=' expects 2 operands (second)", op.file, op.row, op.col));
-                stack.push((a <= b) as i64);
-                ip += 1;
-            }
-            Token::Not => {
-                let a = stack.pop().unwrap() != 0;
-                stack.push((!a) as i64);
-                ip += 1;
-            }
-            Token::Multiply => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <multiply> '*' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <multiply> '*' expects 2 operands (second)", op.file, op.row, op.col));
-                stack.push((a * b) as i64);
-                ip += 1;
-            }
-            Token::Divide => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <divide> '/' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <divide> '/' expects 2 operands (second)", op.file, op.row, op.col));
-                stack.push((a / b) as i64);
-                ip += 1;
-            }
-            Token::Modulo => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (second)", op.file, op.row, op.col));
-                stack.push((a % b) as i64);
-                ip += 1;
-            }
-            Token::BitAnd => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <bit-and> '&' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <bit-and> '&' expects 2 operands (second)", op.file, op.row, op.col));
+        /* ------------------------------- // Bitwise ------------------------------- */
+            OperationType::BitAnd => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <bit-and> '&' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <bit-and> '&' expects 2 operands (second)", op.loc));
                 stack.push((a & b) as i64);
                 ip += 1;
             }
-            Token::BitOr => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (second)", op.file, op.row, op.col));
+            OperationType::BitOr => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
                 stack.push((a | b) as i64);
                 ip += 1;
             }
-            Token::ShiftRight => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (second)", op.file, op.row, op.col));
+            OperationType::ShiftRight => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
                 stack.push((a >> b) as i64);
                 ip += 1;
             }
-            Token::ShiftLeft => {
-                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (first)", op.file, op.row, op.col));
-                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <modulo> '%' expects 2 operands (second)", op.file, op.row, op.col));
+            OperationType::ShiftLeft => {
+                let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
                 stack.push((a << b) as i64);
                 ip += 1;
             }
-            Token::Memory => {
+        /* -------------------------------- // Memory ------------------------------- */
+            OperationType::MemoryPush => {
                 stack.push(0); 
                 ip += 1;
             }
-            Token::Load => {
-                let mem_index = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <load> 'load' expects 1 operand", op.file, op.row, op.col)) as usize;
+            OperationType::MemoryLoad => {
+                let mem_index = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <load> 'load' expects 1 operand", op.loc)) as usize;
                 let value = memory[mem_index] as i64;
                 stack.push(value);
                 ip += 1;
             }
-            Token::Store => {
-                let value = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <store> 'store' expects 2 operands (first)", op.file, op.row, op.col)) as u8;
-                let mem_index = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <store> 'store' expects 2 operands (second)", op.file, op.row, op.col)) as usize;
+            OperationType::MemoryStore => {
+                let value = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <store> 'store' expects 2 operands (first)", op.loc)) as u8;
+                let mem_index = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <store> 'store' expects 2 operands (second)", op.loc)) as usize;
                 memory[mem_index] = value;
                 ip += 1;
             }
-            Token::Syscall1 => {
-                let code = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <syscall1> 'store' expects 2 operands (first)", op.file, op.row, op.col));
-                let arg1 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <syscall1> 'store' expects 2 operands (second)", op.file, op.row, op.col));
+        /* ------------------------------- // Syscall ------------------------------- */
+            OperationType::Syscall1 => {
+                let code = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall1> 'store' expects 2 operands (first)", op.loc));
+                let arg1 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall1> 'store' expects 2 operands (second)", op.loc));
                 match code {
                     60 => { // exit
                         println!("<syscall> exit ({arg1})");
                         break;
                     }
-                    _ => panic!("[ERROR]: {}:{}:{}: <syscall1> Unknown syscall with 2 args", op.file, op.row, op.col)
+                    _ => panic!("[ERROR]: {} <syscall1> Unknown syscall with 2 args", op.loc)
                 }
             }
-            Token::Syscall3  => {
-                let code = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <syscall3> 'store' expects 4 operands (first)", op.file, op.row, op.col));
-                let arg1 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <syscall3> 'store' expects 4 operands (second)", op.file, op.row, op.col));
-                let arg2 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <syscall3> 'store' expects 4 operands (third)", op.file, op.row, op.col));
-                let arg3 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {}:{}:{}: (Empty Stack) <syscall3> 'store' expects 4 operands (fourth)", op.file, op.row, op.col));
+            OperationType::Syscall3  => {
+                let code = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall3> 'store' expects 4 operands (first)", op.loc));
+                let arg1 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall3> 'store' expects 4 operands (second)", op.loc));
+                let arg2 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall3> 'store' expects 4 operands (third)", op.loc));
+                let arg3 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall3> 'store' expects 4 operands (fourth)", op.loc));
                 match code {
                     1 => { // write
                         match arg1 { // file desc
@@ -227,10 +233,10 @@ pub fn simulate_program(program: &Vec<Operation>) {
                                 }
                                 ip += 1;
                             }
-                            _ => panic!("[ERROR]: {}:{}:{}: <syscall3> (syscall write) unknown file descriptor {arg1}", op.file, op.row, op.col)
+                            _ => panic!("[ERROR]: {} <syscall3> (syscall write) unknown file descriptor {arg1}", op.loc)
                         } 
                     }
-                    _ => panic!("[ERROR]: {}:{}:{}: <syscall3> Unknown syscall with 4 args", op.file, op.row, op.col)
+                    _ => panic!("[ERROR]: {} <syscall3> Unknown syscall with 4 args", op.loc)
                 }
             }
         }

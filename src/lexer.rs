@@ -1,138 +1,168 @@
 use std::fs::File;
 use std::io::{self, BufRead};
-use super::operation::{self, Operation, Token};
+use super::operation::{OperationType, Operation};
+use super::token::{Token, TokenType, TokenValue};
 
-pub fn lex_file(filepath: &str, program: &mut Vec<Operation>) {
-    if let Ok(lines) = read_lines(filepath) {
-        println!("[INFO]: reading the program from '{}'", filepath);
-        let mut ip_counter = 0;
+pub fn lex_file(file: &str) -> Vec<Token> {
+    let mut program: Vec<Token> = Vec::new();
+    if let Ok(lines) = read_lines(file) {
+        println!("[INFO]: reading the program from '{}'", file);
         for (row, line) in lines.enumerate() {
             match line {
-                Ok(l) => ip_counter = lex_line(program, ip_counter, &String::from(filepath), row + 1 , l),
-                Err(e) => panic!("{}", e),
+                Ok(line) => program = [program, lex_line(file, row, line)].concat(),
+                Err(err) => panic!("[ERROR]: {}", err),
             }
         }
-        crossreference_blocks(program);
     }
+    program
 }
 
-pub fn lex_line(program: &mut Vec<Operation>, ip: usize, filepath: &String, row: usize, line: String) -> usize 
+fn lex_line(file: &str, row: usize, line: String) -> Vec<Token>
 {
-    println!("[INFO]: Raw line ({row}): {:?}", line);
+    let mut program: Vec<Token> = Vec::new();
     let inter: Vec<&str> = line.split("//").take(1).collect();
     let words: Vec<&str> = inter.iter().flat_map(|&s| s.split_whitespace()).collect();
+    println!("[INFO]: Raw line ({row}): {:?}", line);
     println!("[INFO]: Splitted ({row}): {:?}", words);
 
-    let mut ip = ip;
-    let mut col = step_col(&line, 0, |x| x != b' ');
-    for w in words {
+    let mut col: usize = 0;
+    for word in words {
         col = step_col(&line, col, |x| x != b' ');
-        let mut advance_index = true;
-        match w {
-            "dump" => program.push(operation::op_dump(ip, filepath, row, col)),
-            "dup"  => program.push(operation::op_dup(ip, filepath, row, col)),
-            "dup2" => program.push(operation::op_dup_2(ip, filepath, row, col)),
-            "drop" => program.push(operation::op_drop(ip, filepath, row, col)),
-            "swap" => program.push(operation::op_swap(ip, filepath, row, col)),
-            "over" => program.push(operation::op_over(ip, filepath, row, col)),
-
-            "+" | "add" => program.push(operation::op_plus(ip, filepath, row, col)),
-            "-" | "sub" => program.push(operation::op_minus(ip, filepath, row, col)),
-            "*" | "mul" => program.push(operation::op_multiply(ip, filepath, row, col)),
-            "/" | "div" => program.push(operation::op_divide(ip, filepath, row, col)),
-            "%" | "mod" => program.push(operation::op_modulo(ip, filepath, row, col)),
-            
-            "="  | "eq"  => program.push(operation::op_eq(ip, filepath, row, col)),
-            "!=" | "neq" => program.push(operation::op_not_eq(ip, filepath, row, col)),
-            "<"  | "le"  => program.push(operation::op_le(ip, filepath, row, col)),
-            ">"  | "gr"  => program.push(operation::op_gr(ip, filepath, row, col)),
-            "<=" | "eql" => program.push(operation::op_eq_le(ip, filepath, row, col)),
-            ">=" | "egr" => program.push(operation::op_eq_gr(ip, filepath, row, col)),
-            "!"  | "not" => program.push(operation::op_not(ip, filepath, row, col)),
-            
-            "<<" | "shl"  => program.push(operation::op_shift_left(ip, filepath, row, col)),
-            ">>" | "shr"  => program.push(operation::op_shift_right(ip, filepath, row, col)),
-            "&"  | "band" => program.push(operation::op_bit_and(ip, filepath, row, col)),
-            "|"  | "bor"  => program.push(operation::op_bit_or(ip, filepath, row, col)),
-            
-            "end"   => program.push(operation::op_end(ip, filepath, row, col)),
-            "if"    => program.push(operation::op_if(ip, filepath, row, col)),
-            "else"  => program.push(operation::op_else(ip, filepath, row, col)),
-            "while" => program.push(operation::op_while(ip, filepath, row, col)),
-            "do"    => program.push(operation::op_do(ip, filepath, row, col)),
-            
-            "mem"           => program.push(operation::op_memory(ip, filepath, row, col)),
-            ","   | "load"  => program.push(operation::op_load(ip, filepath, row, col)),
-            "."   | "store" => program.push(operation::op_store(ip, filepath, row, col)),
-            
-            "syscall1" => program.push(operation::op_syscall_1(ip, filepath, row, col)),
-            "syscall3" => program.push(operation::op_syscall_3(ip, filepath, row, col)),
-            
-            number => {
-                match number.parse::<i64>() {
-                    Ok(v) => program.push(operation::op_push(ip, v, filepath, row, col)),
-                    Err(e) => {
-                        println!("[ERROR] Unknown Token: {}:{}:{}:, {:?}, {:?}", filepath, row + 1, col + 1, w, e);
-                        advance_index = false;
-                    }
-                }
-            }
-        }
+        let token = lex_word(word, file, row, col);
+        program.push(token);
         col = step_col(&line, col, |x| x == b' ');
-        if advance_index {
-            ip += 1
+    }
+    program
+}
+
+fn lex_word(word: &str, file: &str, row: usize, col: usize) -> Token {
+    let value = word.parse::<i64>(); // try tokenizing to an Integer type
+    match value {
+        Ok(v) => {
+            Token::new_int(TokenType::Int, v, &file.to_string(), row, col)         
+        }
+        Err(_) => {
+            Token::new_word(TokenType::Word, &word.to_string(), &file.to_string(), row, col)
         }
     }
-    ip
 }
 
 fn crossreference_blocks(program: &mut Vec<Operation>) {
     let mut stack: Vec<usize> = Vec::new();
         
     for ip in 0..program.len() {
-        match program[ip].token {
-            Token::If => stack.push(ip),
-            Token::While => stack.push(ip),
-            Token::Do => {
+        match program[ip].op_type {
+            // process block instructions
+            OperationType::If => stack.push(ip),
+            OperationType::While => stack.push(ip),
+            OperationType::Do => {
                 let while_index = stack.pop().unwrap();
                 let while_op = &program[while_index];
                 program[ip].value = while_op.index as i64;
                 stack.push(ip);
             }
-            Token::Else => {
+            OperationType::Else => {
                 let if_index = stack.pop().unwrap();
                 program[if_index].value = (ip + 1) as i64; 
                 stack.push(ip);
             }
-            Token::End => {
+            OperationType::End => {
                 let prev_index = stack.pop().unwrap();
-                if program[prev_index].token == Token::If || program[prev_index].token == Token::Else {
+                if program[prev_index].op_type == OperationType::If || program[prev_index].op_type == OperationType::Else {
                     program[prev_index].value =  program[ip].index as i64;
                 }
-                if program[prev_index].token == Token::Do {
+                if program[prev_index].op_type == OperationType::Do {
                     program[ip].value = program[prev_index].value as i64;
                     program[prev_index].value = ( program[ip].index + 1) as i64;
                 }
             }
             // ignore other instructions
-            Token::Push 
-                | Token::Dump | Token::Drop
-                | Token::Swap | Token::Over
-                | Token::Dup | Token::Dup2
-                | Token::Plus | Token::Minus 
-                | Token::Multiply | Token::Divide
-                | Token::Modulo
-                | Token::Eq | Token::NotEq | Token::Not 
-                | Token::Le | Token::Gr 
-                | Token::EqGr | Token::EqLe
-                | Token::BitAnd | Token::BitOr 
-                | Token::ShiftRight | Token::ShiftLeft 
-                | Token::Memory
-                | Token::Load
-                | Token::Store
-                | Token::Syscall1 
-                | Token::Syscall3
+            OperationType::Push 
+                | OperationType::Dump | OperationType::Drop | OperationType::Swap | OperationType::Over
+                | OperationType::Duplicate | OperationType::Duplicate2
+                | OperationType::Add | OperationType::Subtract 
+                | OperationType::Multiply | OperationType::Divide
+                | OperationType::Modulo
+                | OperationType::Equal | OperationType::NotEqual | OperationType::Not 
+                | OperationType::Less | OperationType::Greater 
+                | OperationType::GreaterEqual | OperationType::LessEqual
+                | OperationType::BitAnd | OperationType::BitOr 
+                | OperationType::ShiftRight | OperationType::ShiftLeft 
+                | OperationType::MemoryPush | OperationType::MemoryLoad | OperationType::MemoryStore
+                | OperationType::Syscall1 | OperationType::Syscall3
                 => {} 
+        }
+    }
+}
+
+pub fn parse_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
+    let mut operations: Vec<Operation> = Vec::new();
+    let mut index: usize = 0;
+    for token in tokens {
+        let op = parse_token_to_operation(token, index);
+        operations.push(op);
+        index += 1;
+    }
+    crossreference_blocks(&mut operations);
+    operations
+}
+
+fn parse_token_to_operation(token: &Token, index: usize) -> Operation {
+    return match token.tok_type {
+        TokenType::Word => {
+            match &token.value {
+                TokenValue::Str(s) => {
+                    match s.as_str() {
+                        "dump" => Operation::new(OperationType::Dump, index, &token.loc),
+                        "dup"  => Operation::new(OperationType::Duplicate, index, &token.loc),
+                        "dup2" => Operation::new(OperationType::Duplicate2, index, &token.loc),
+                        "drop" => Operation::new(OperationType::Drop, index, &token.loc),
+                        "swap" => Operation::new(OperationType::Swap, index, &token.loc),
+                        "over" => Operation::new(OperationType::Over, index, &token.loc),
+                        
+                        "+" | "add" => Operation::new(OperationType::Add, index, &token.loc),
+                        "-" | "sub" => Operation::new(OperationType::Subtract, index, &token.loc),
+                        "*" | "mul" => Operation::new(OperationType::Multiply, index, &token.loc),
+                        "/" | "div" => Operation::new(OperationType::Divide, index, &token.loc),
+                        "%" | "mod" => Operation::new(OperationType::Modulo, index, &token.loc),
+                        
+                        "="  | "eq"  => Operation::new(OperationType::Equal, index, &token.loc),
+                        "!=" | "neq" => Operation::new(OperationType::NotEqual, index, &token.loc),
+                        "<"  | "le"  => Operation::new(OperationType::Less, index, &token.loc),
+                        ">"  | "gr"  => Operation::new(OperationType::Greater, index, &token.loc),
+                        "<=" | "eql" => Operation::new(OperationType::LessEqual, index, &token.loc),
+                        ">=" | "egr" => Operation::new(OperationType::GreaterEqual, index, &token.loc),
+                        "!"  | "not" => Operation::new(OperationType::Not, index, &token.loc),
+                        
+                        "<<" | "shl"  => Operation::new(OperationType::ShiftLeft, index, &token.loc),
+                        ">>" | "shr"  => Operation::new(OperationType::ShiftRight, index, &token.loc),
+                        "&"  | "band" => Operation::new(OperationType::BitAnd, index, &token.loc),
+                        "|"  | "bor"  => Operation::new(OperationType::BitOr, index, &token.loc),
+                        
+                        "end"   => Operation::new(OperationType::End, index, &token.loc),
+                        "if"    => Operation::new(OperationType::If, index, &token.loc),
+                        "else"  => Operation::new(OperationType::Else, index, &token.loc),
+                        "while" => Operation::new(OperationType::While, index, &token.loc),
+                        "do"    => Operation::new(OperationType::Do, index, &token.loc),
+                        
+                        "mem"           => Operation::new(OperationType::MemoryPush, index, &token.loc),
+                        "," | "load"  => Operation::new(OperationType::MemoryLoad, index, &token.loc),
+                        "." | "store" => Operation::new(OperationType::MemoryStore, index, &token.loc),
+                        
+                        "syscall1" => Operation::new(OperationType::Syscall1, index, &token.loc),
+                        "syscall3" => Operation::new(OperationType::Syscall3, index, &token.loc),
+                        _ => panic!("[ERROR]: {} {:?} is unknown operation", token.loc, s)
+                    }
+                }
+                _ => panic!("[ERROR]: TokenType::Word must have TokenValue::Str")
+            }
+        }
+
+        TokenType::Int => {
+            match token.value {
+                TokenValue::Int(num) => Operation::new_with_value(OperationType::Push, num, index, &token.loc),
+                _ => panic!("[ERROR]: TokenType::Int must have TokenValue::Str")
+            }
         }
     }
 }
