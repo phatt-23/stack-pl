@@ -1,11 +1,11 @@
 use core::panic;
 use std::fs::File;
 use std::io::{self, BufRead};
-use super::operation::{OperationType, Operation};
-use super::token::{Token, TokenType, TokenValue};
+use crate::operation::{OperationType, Operation};
+use crate::token::{Token, TokenType, TokenValue};
 
 pub fn lex_file(file: &str) -> Vec<Token> {
-    println!("[INFO]: reading the program from '{}'", file);
+    // println!("[INFO]: reading the program from '{}'", file);
     let lines = read_lines(file);
     return lines
         .enumerate()
@@ -15,14 +15,12 @@ pub fn lex_file(file: &str) -> Vec<Token> {
 
 fn lex_line(file: &str, row: usize, line: String) -> Vec<Token>
 {
-    println!("[INFO]: Original ({row}): {:?}", line);
+    // println!("[INFO]: Original ({row}): {:?}", line);
     let line = line
         .split_at(line.find("//")
         .unwrap_or_else(|| line.len()))
         .0.to_string();
-    println!("[INFO]: UnComment ({row}): {:?}", line);
-    // println!("[INFO]: Splitted ({row}): {:?}", line.split("//").take(1).flat_map(|s| s.split_whitespace()));
-
+    // println!("[INFO]: UnComment ({row}): {:?}", line);
 
     let mut col: usize = find_col(&line, 0, |x| x != b' ');
     let mut col_end: usize;
@@ -44,7 +42,7 @@ fn lex_line(file: &str, row: usize, line: String) -> Vec<Token>
 
             let word = &line[col..col_end]; 
             tok = match word.parse::<i32>() {
-                Ok(v) => Token::new_int(v, &file.to_string(), row, col),
+                Ok(v)  => Token::new_int(v, &file.to_string(), row, col),
                 Err(_) => Token::new_word(&word.to_string(), &file.to_string(), row, col),
             };
             

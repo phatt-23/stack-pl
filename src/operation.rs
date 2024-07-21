@@ -53,7 +53,7 @@ pub enum OperationValue {
     Str(String),
 }
 
-use super::location::Location;
+use crate::location::Location;
 
 #[derive(Debug, Clone)]
 pub struct Operation {

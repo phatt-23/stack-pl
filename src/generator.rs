@@ -2,45 +2,7 @@ use core::panic;
 use std::fs::File;
 use std::io::{self, Write};
 use std::mem;
-use std::process::Command;
-
-use crate::operation::OperationValue;
-
-use super::operation::{Operation, OperationType};
-
-fn print_command_output(output: std::process::Output) {
-    if !&output.stdout.is_empty() {
-        println!(
-            "[INFO]: stdout: {}",
-            String::from_utf8_lossy(&output.stdout)
-        );
-    }
-    if !&output.stderr.is_empty() {
-        println!(
-            "[ERROR]: stderr:\n{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        println!("[ERROR]: status:\n{}", output.status);
-    }
-}
-
-pub fn compile_assembly(executable: &str) {
-    print_command_output(
-        Command::new("nasm")
-            .arg("-felf64")
-            .arg("output.asm")
-            .output()
-            .expect("nasm failed"),
-    );
-    print_command_output(
-        Command::new("ld")
-            .arg("output.o")
-            .arg("-o")
-            .arg(executable)
-            .output()
-            .expect("ld failed"),
-    );
-}
+use crate::operation::{Operation, OperationType, OperationValue};
 
 const MEMORY_SIZE: usize = 64_000;
 
@@ -154,7 +116,7 @@ fn generate_operation(
             writeln!(file, "    ;; push op")?;
             writeln!(file, "    push {}", value)?;
         }
-        (OperationType::PushStr, OperationValue::Str(value)) => {
+        (OperationType::PushStr, OperationValue::Str(_value)) => {
             todo!();
         }
         /* -------------------------------- // Stack -------------------------------- */

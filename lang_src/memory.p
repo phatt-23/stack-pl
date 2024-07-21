@@ -5,7 +5,7 @@ mem dup 72  .
 1 + dup 108 . 
 1 + dup 111 . 
 1 + dup 10  . 
-1 + dup 10  . 
+
 
 dup mem 1 1 syscall3
 

@@ -1,6 +1,6 @@
 use crate::operation::OperationValue;
 
-use super::operation::{Operation, OperationType};
+use crate::operation::{Operation, OperationType};
 
 const STRING_LIT_SPACE: usize = 512;
 const MEMORY_SPACE: usize = 64_000;
@@ -8,7 +8,7 @@ const MEMORY_SPACE: usize = 64_000;
 pub fn simulate_program(program: &Vec<Operation>) {
     println!("[INFO]: Simulating the program");
     let mut stack: Vec<i32> = Vec::new();
-    let mut memory: Vec<u8> = Vec::with_capacity(MEMORY_SPACE + STRING_LIT_SPACE);
+    let mut memory: Vec<u8> = vec![0; STRING_LIT_SPACE + MEMORY_SPACE];
     let mut string_lit_space_counter: usize = 0;
 
     let mut ip: usize = 0;
