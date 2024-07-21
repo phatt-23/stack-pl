@@ -15,8 +15,14 @@ pub fn lex_file(file: &str) -> Vec<Token> {
 
 fn lex_line(file: &str, row: usize, line: String) -> Vec<Token>
 {
-    let line = line.split("//").take(1);
-    println!("[INFO]: UnCommented ({row}): {:?}", line);
+    println!("[INFO]: Original ({row}): {:?}", line);
+    let line = line
+        .split_at(line.find("//")
+        .unwrap_or_else(|| line.len()))
+        .0.to_string();
+    println!("[INFO]: UnComment ({row}): {:?}", line);
+    // println!("[INFO]: Splitted ({row}): {:?}", line.split("//").take(1).flat_map(|s| s.split_whitespace()));
+
 
     let mut col: usize = find_col(&line, 0, |x| x != b' ');
     let mut col_end: usize;
