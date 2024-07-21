@@ -28,6 +28,6 @@ mem 98 + 1 .
     drop 
     drop
 
-    1 + 
+    1 +
 end 
 drop

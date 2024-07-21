@@ -4,14 +4,13 @@ use super::location::Location;
 pub enum TokenType {
     Word,
     Int,
-    // Str,
+    Str,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenValue {
     Int(i32),
     Str(String),
-    // Str(String),
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -22,17 +21,25 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new_int(tok_type: TokenType, value: i32, file: &String, row: usize, col: usize) -> Self {
+    pub fn new_int(value: i32, file: &String, row: usize, col: usize) -> Self {
         Self { 
-            tok_type, 
+            tok_type: TokenType::Int, 
             value: TokenValue::Int(value), 
             loc: Location::new(file, row, col)
         }
     }
-    pub fn new_word(tok_type: TokenType, value: &String, file: &String, row: usize, col: usize) -> Self {
+    pub fn new_word(value: &String, file: &String, row: usize, col: usize) -> Self {
         Self { 
-            tok_type, 
-            value: TokenValue::Str(value.to_string()), 
+            tok_type: TokenType::Word, 
+            value: TokenValue::Str(value.clone()), 
+            loc: Location::new(file, row, col)
+        }
+    }
+    pub fn new_str(value: &String, file: &String, row: usize, col: usize) -> Self {
+        let value = value.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r");
+        Self { 
+            tok_type: TokenType::Str, 
+            value: TokenValue::Str(value), 
             loc: Location::new(file, row, col)
         }
     }

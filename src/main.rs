@@ -13,25 +13,19 @@ fn main() {
         utils::print_usage(&args);
         return;
     }
-
     let filepath = &args[2].as_str();
-    let tokens = lexer::lex_file(filepath); // lex a file to tokens
+
     
-    for t in &tokens {
-        println!("[INFO token]: {t}");
-    }
+    // lex a file to tokens
+    let tokens = lexer::lex_file(filepath); // lex a file to tokens
+    tokens.iter().for_each(|t| println!("[INFO token]: {t}"));
+
 
     // parse tokens to operations
     let operations = lexer::parse_tokens_to_operations(&tokens);
-    
-    for o in &operations {
-        println!("[INFO op]: {o}");
-    }
+    operations.iter().for_each(|o| println!("[INFO op]: {o}"));
 
     
-
-
-
     // simulate or compile the file
     let program = &operations;
     match args[1].as_str() {
