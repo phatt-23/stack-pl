@@ -2,14 +2,15 @@ use crate::operation::OperationValue;
 
 use crate::operation::{Operation, OperationType};
 
-const STRING_LIT_SPACE: usize = 512;
-const MEMORY_SPACE: usize = 64_000;
 
 pub fn simulate_program(program: &Vec<Operation>) {
-    println!("[INFO]: Simulating the program");
+    println!("[INFO simulation]:");
+    const STRING_SPACE: usize =  1_024;
+    const MEMORY_SPACE: usize = 64_000;
+    let mut string_space_counter: usize = 0;
+
     let mut stack: Vec<i32> = Vec::new();
-    let mut memory: Vec<u8> = vec![0; STRING_LIT_SPACE + MEMORY_SPACE];
-    let mut string_lit_space_counter: usize = 0;
+    let mut memory: Vec<u8> = vec![0; STRING_SPACE + MEMORY_SPACE];
 
     let mut ip: usize = 0;
     while ip < program.len() {
@@ -21,11 +22,10 @@ pub fn simulate_program(program: &Vec<Operation>) {
             }
             (OperationType::PushStr, OperationValue::Str(value)) => {
                 stack.push(value.len() as i32);                 // push the count of u8 chars
-                stack.push(string_lit_space_counter as i32);    // push the start address
-                
-                memory.splice(string_lit_space_counter.., value.bytes());
-                
-                string_lit_space_counter += value.len();
+                stack.push(string_space_counter as i32);        // push the start address
+                memory.splice(string_space_counter.., value.bytes());
+                string_space_counter += value.len();
+                assert!(string_space_counter < STRING_SPACE, "[ERROR]: string space overflow");
                 ip += 1;
             }
             /* -------------------------------- // Stack -------------------------------- */
@@ -199,7 +199,7 @@ pub fn simulate_program(program: &Vec<Operation>) {
             }
         /* -------------------------------- // Memory ------------------------------- */
             (OperationType::MemoryPush, OperationValue::Nothing) => {
-                stack.push(0 + STRING_LIT_SPACE as i32); 
+                stack.push(0 + STRING_SPACE as i32); 
                 ip += 1;
             }
             (OperationType::MemoryLoad, OperationValue::Nothing) => {
@@ -220,7 +220,7 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 let arg1 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall1> 'syscall1' expects 2 operands (second)", op.loc));
                 match code {
                     60 => { // exit
-                        println!("<syscall> exit ({arg1})");
+                        println!("<sys_exit> ({arg1})");
                         break;
                     }
                     _ => panic!("[ERROR]: {} <syscall1> Unknown syscall with 2 args", op.loc)

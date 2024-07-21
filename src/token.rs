@@ -36,7 +36,9 @@ impl Token {
         }
     }
     pub fn new_str(value: &String, file: &String, row: usize, col: usize) -> Self {
-        let value = value.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r");
+        let value = value.replace("\\n", "\n")
+                         .replace("\\t", "\t")
+                         .replace("\\r", "\r");
         Self { 
             tok_type: TokenType::Str, 
             value: TokenValue::Str(value), 

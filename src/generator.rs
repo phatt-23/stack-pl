@@ -1,27 +1,20 @@
 use core::panic;
 use std::fs::File;
 use std::io::{self, Write};
-use std::mem;
 use crate::operation::{Operation, OperationType, OperationValue};
 
-const MEMORY_SIZE: usize = 64_000;
+const STRING_SPACE: usize = 1_024;
+const MEMORY_SPACE: usize = 64_000;
+static mut STRING_SPACE_COUNTER: usize = 0;
 
 pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32> {
     let mut file = File::create(output).expect("creation failed");
     writeln!(file, "bits 64")?;
     writeln!(file, "    ;;;")?;
     writeln!(file, "section .data")?;
-    writeln!(file, "    MINUS:          db '-', 0x00")?;
-    writeln!(file, "    FD_STDOUT:      dq 1")?;
-    writeln!(file, "    SYSCALL_WRITE:  dq 1")?;
-    writeln!(file, "    SYSCALL_EXIT:   dq 60")?;
-    writeln!(
-        file,
-        "    ALPHABET_UPPER: db \"abcdefghijklmnopqrstuvwxyz\", 0x00"
-    )?;
     writeln!(file, "    ;;;")?;
     writeln!(file, "section .bss")?;
-    writeln!(file, "    MEMORY: resb {}", MEMORY_SIZE)?;
+    writeln!(file, "    MEMORY: resb {}", MEMORY_SPACE + STRING_SPACE)?;
     writeln!(file, "    ;;;")?;
     writeln!(file, "section .text")?;
     writeln!(file, "    ;;;")?;
@@ -31,8 +24,8 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
     writeln!(file, "    ;;;")?;
     writeln!(file, "sys_write_stdout:")?;
     writeln!(file, "    enter 0, 0")?;
-    writeln!(file, "    mov   rax, [SYSCALL_WRITE]")?;
-    writeln!(file, "    mov   rdi, [FD_STDOUT]")?;
+    writeln!(file, "    mov   rax, 1")?;
+    writeln!(file, "    mov   rdi, 1")?;
     writeln!(file, "    syscall")?;
     writeln!(file, "    leave")?;
     writeln!(file, "    ret")?;
@@ -45,9 +38,11 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
     writeln!(file, "        jge  .positive")?;
     writeln!(file, "        neg  rdi")?;
     writeln!(file, "        push rdi")?;
-    writeln!(file, "        mov  rsi, MINUS")?;
+    writeln!(file, "        push '-'")?;
+    writeln!(file, "        mov  rsi, rsp")?;
     writeln!(file, "        mov  rdx, 1")?;
     writeln!(file, "        call sys_write_stdout")?;
+    writeln!(file, "        pop  rdi")?; // dropping '-'
     writeln!(file, "        pop  rdi")?;
     writeln!(file, "    .positive:")?;
     writeln!(file, "        mov rax, rdi")?;
@@ -97,7 +92,7 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
 
     // writeln!(file, "address_{}:", program.len())?;
     writeln!(file, "    ;;; return")?;
-    writeln!(file, "    mov rax, [SYSCALL_EXIT]")?;
+    writeln!(file, "    mov rax, 60")?;
     writeln!(file, "    mov rdi, 0")?;
     writeln!(file, "    syscall")?;
 
@@ -116,8 +111,23 @@ fn generate_operation(
             writeln!(file, "    ;; push op")?;
             writeln!(file, "    push {}", value)?;
         }
-        (OperationType::PushStr, OperationValue::Str(_value)) => {
-            todo!();
+        (OperationType::PushStr, OperationValue::Str(value)) => {
+            let size = value.len();
+            writeln!(file, "    ;; push str")?;
+            writeln!(file, "    push {}", size)?;                           // pushing the string length
+            writeln!(file, "    lea rax, [rel MEMORY]")?;                   // loading memory address to register
+            unsafe {
+                writeln!(file, "    add rax, {}", STRING_SPACE_COUNTER)?;   // offsetting
+            }
+            writeln!(file, "    push rax")?;                                // push the crafted address
+            for i in 0..size {
+                let char = value.as_bytes()[i];
+                writeln!(file, "    mov  byte [rax + {i}], {char}")?;      
+            }
+            unsafe {
+                STRING_SPACE_COUNTER += size;
+                assert!(STRING_SPACE_COUNTER < STRING_SPACE, "[ERROR]: string space overflow");
+            }
         }
         /* -------------------------------- // Stack -------------------------------- */
         (OperationType::Dump, OperationValue::Nothing) => {
@@ -127,7 +137,7 @@ fn generate_operation(
         }
         (OperationType::Drop, OperationValue::Nothing) => {
             writeln!(file, "    ;; drop")?;
-            writeln!(file, "    add rsp, {}", mem::size_of::<usize>())?; // system dependent
+            writeln!(file, "    pop rax")?;
         }
         (OperationType::Duplicate, OperationValue::Nothing) => {
             writeln!(file, "    ;; dup")?;
@@ -327,7 +337,11 @@ fn generate_operation(
         /* -------------------------------- // Memory ------------------------------- */
         (OperationType::MemoryPush, OperationValue::Nothing) => {
             writeln!(file, "    ;; mem")?;
-            writeln!(file, "    push MEMORY")?; // push the address of MEMORY in .bss
+            // push the address of MEMORY in .bss
+            writeln!(file, "    push MEMORY")?; 
+            writeln!(file, "    pop rax")?;
+            writeln!(file, "    add rax, {}", STRING_SPACE)?;
+            writeln!(file, "    push rax")?;
         }
         (OperationType::MemoryLoad, OperationValue::Nothing) => {
             writeln!(file, "    ;; load")?;
