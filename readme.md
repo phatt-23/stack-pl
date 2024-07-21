@@ -1,14 +1,16 @@
-# Stack based programming language and compiler
+# Stack based programming language
 
 Programming language using the Polish reversed syntax.
 The compiler generates 'x86_64 intel' assembly code which is then compiled with 'nasm' into executable.
 
-- [x] Arithmetic operators
-- [x] Logic operators
-- [x] If-Else statements
-- [x] Loops (while loop)
+- [x] Arithmetic Operators
+- [x] Logic Operators
+- [x] Bitwise Operators
+- [x] If-Else Statement
+- [x] Loops (while)
 - [x] Memory Access
-- [x] Bitwise
+- [x] String Literal
+- [x] Syscall
 - [ ] Types
 
 Command to compile and run the code.
