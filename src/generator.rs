@@ -11,7 +11,26 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
     let mut file = File::create(output).expect("creation failed");
     writeln!(file, "bits 64")?;
     writeln!(file, "    ;;;")?;
+    writeln!(file, "_start:")?;
+    
+    let mut strings: Vec<String> = Vec::new();
+    for (index, op) in program.iter().enumerate() {
+        generate_operation(&mut file, index, op, &mut strings)?;
+    }
+    
+    // writeln!(file, "address_{}:", program.len())?;
+    writeln!(file, "    ;;; return")?;
+    writeln!(file, "    mov rax, 60")?;
+    writeln!(file, "    mov rdi, 0")?;
+    writeln!(file, "    syscall")?;
+    writeln!(file, "    ;;;")?;
     writeln!(file, "section .data")?;
+
+    for (index, string) in strings.iter().enumerate() {
+        let bytes = format!("{:?}", string.as_bytes()).replace(|c| c == '[' || c == ']', "");
+        writeln!(file, "    str_{}: db {}", index, bytes)?;
+    }
+
     writeln!(file, "    ;;;")?;
     writeln!(file, "section .bss")?;
     writeln!(file, "    MEMORY: resb {}", MEMORY_SPACE + STRING_SPACE)?;
@@ -84,17 +103,6 @@ pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32
     writeln!(file, "    leave")?;
     writeln!(file, "    ret")?;
     writeln!(file, " ")?;
-    writeln!(file, "_start:")?;
-
-    for (index, op) in program.iter().enumerate() {
-        generate_operation(&mut file, index, op)?;
-    }
-
-    // writeln!(file, "address_{}:", program.len())?;
-    writeln!(file, "    ;;; return")?;
-    writeln!(file, "    mov rax, 60")?;
-    writeln!(file, "    mov rdi, 0")?;
-    writeln!(file, "    syscall")?;
 
     Ok(0)
 }
@@ -103,6 +111,7 @@ fn generate_operation(
     file: &mut std::fs::File,
     index: usize,
     op: &Operation,
+    strings: &mut Vec<String>
 ) -> Result<i32, io::Error> {
     writeln!(file, "address_{}:", index)?;
     match (&op.op_type, &op.value) {
@@ -113,17 +122,21 @@ fn generate_operation(
         }
         (OperationType::PushStr, OperationValue::Str(value)) => {
             let size = value.len();
+            // writeln!(file, "    ;; push str")?;
+            // writeln!(file, "    push {}", size)?;                           // pushing the string length
+            // writeln!(file, "    lea rax, [rel MEMORY]")?;                   // loading memory address to register
+            // unsafe {
+            //     writeln!(file, "    add rax, {}", STRING_SPACE_COUNTER)?;   // offsetting
+            // }
+            // writeln!(file, "    push rax")?;                                // push the crafted address
+            // for i in 0..size {
+            //     let char = value.as_bytes()[i];
+            //     writeln!(file, "    mov  byte [rax + {i}], {char}")?;      
+            // }
             writeln!(file, "    ;; push str")?;
-            writeln!(file, "    push {}", size)?;                           // pushing the string length
-            writeln!(file, "    lea rax, [rel MEMORY]")?;                   // loading memory address to register
-            unsafe {
-                writeln!(file, "    add rax, {}", STRING_SPACE_COUNTER)?;   // offsetting
-            }
-            writeln!(file, "    push rax")?;                                // push the crafted address
-            for i in 0..size {
-                let char = value.as_bytes()[i];
-                writeln!(file, "    mov  byte [rax + {i}], {char}")?;      
-            }
+            writeln!(file, "    push {}", size)?;
+            writeln!(file, "    push str_{}", strings.len())?;
+            strings.push(value.to_string());
             unsafe {
                 STRING_SPACE_COUNTER += size;
                 assert!(STRING_SPACE_COUNTER < STRING_SPACE, "[ERROR]: string space overflow");

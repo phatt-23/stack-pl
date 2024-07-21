@@ -16,7 +16,6 @@ pub fn print_usage() {
 }
 
 pub fn run_command(args: &[&str]) {
-    // println!("{args:?}");
     print_command_output(
         Command::new(args[0])
             .args(&args.to_vec()[1..])
@@ -109,7 +108,6 @@ pub fn command_line_args()
             }
             "-o" => {
                 let file = handle_flag_with_file_arg("-o", file!(), line!(), args.get(index + 1))?;
-                println!("{file}");
                 cl_args.push(CLArgument::Output(file.clone()));
                 index += 1;
             }
@@ -140,11 +138,11 @@ pub fn command_line_args()
     }
 
     
-    let sim_mode = if cl_args.iter().any(|arg| matches!(arg, CLArgument::Simulation)) {true} else {false};
     let com_mode = if cl_args.iter().any(|arg| matches!(arg, CLArgument::Compilation)) {true} else {false};
-    if !(com_mode || sim_mode) {
-        return Err((file!(), line!(), format!("provide (-s, --sim) for simulation or (-c, --com) for compilation")));
-    }
+    // let sim_mode = if cl_args.iter().any(|arg| matches!(arg, CLArgument::Simulation)) {true} else {false};
+    // if !(com_mode || sim_mode) {
+    //     return Err((file!(), line!(), format!("provide (-s, --sim) for simulation or (-c, --com) for compilation")));
+    // }
     
     let src_files: Vec<String> = cl_args.iter().filter_map(|arg| {
         if let CLArgument::File(file_name) = arg { Some(file_name.clone()) } else { None }

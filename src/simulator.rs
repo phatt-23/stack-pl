@@ -2,9 +2,7 @@ use crate::operation::OperationValue;
 
 use crate::operation::{Operation, OperationType};
 
-
 pub fn simulate_program(program: &Vec<Operation>) {
-    println!("[INFO simulation]:");
     const STRING_SPACE: usize =  1_024;
     const MEMORY_SPACE: usize = 64_000;
     let mut string_space_counter: usize = 0;
@@ -234,16 +232,8 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 match code {
                     1 => { // write
                         match arg1 { // file desc
-                            1 => { // stdout
-                                for i in 0..arg3 {
-                                    print!("{}", memory[(arg2 + i) as usize] as char);
-                                }
-                                ip += 1;
-                            }
-                            2 => { // stderr
-                                for i in 0..arg3 {
-                                    print!("{}", memory[(arg2 + i) as usize] as char);
-                                }
+                            1 | 2 => { // stdout and stderr
+                                print!("{}", std::str::from_utf8(&memory[arg2 as usize..(arg3 + arg2) as usize]).unwrap());
                                 ip += 1;
                             }
                             _ => panic!("[ERROR]: {} <syscall3> (syscall write) unknown file descriptor {arg1}", op.loc)

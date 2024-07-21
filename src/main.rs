@@ -21,15 +21,17 @@ fn main() {
     if debug {
         operations.iter().for_each(|o| println!("[INFO op]: {o}"));
     }
-
+    
+    // generate assembly file
+    generator::create_assembly(&operations, &asm_file).unwrap();
+    
     // simulate or compile the file
-    let program = &operations;
     cl_args.iter().for_each(|arg| {
         match arg {
-            utils::CLArgument::Simulation  => simulator::simulate_program(&program),
+            utils::CLArgument::Simulation  => {
+                simulator::simulate_program(&operations);
+            }
             utils::CLArgument::Compilation => {
-                generator::create_assembly(&program, &asm_file).unwrap();
-
                 utils::run_command(&["nasm", "-felf64", &asm_file]);
                 utils::run_command(&["ld", asm_file.replace(".asm", ".o").as_str(), "-o", &out_file]);
                 if run {

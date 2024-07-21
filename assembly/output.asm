@@ -1,5 +1,175 @@
 bits 64
     ;;;
+_start:
+address_0:
+    ;; mem
+    push MEMORY
+    pop rax
+    add rax, 1024
+    push rax
+address_1:
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_2:
+    ;; push op
+    push 72
+address_3:
+    ;; store
+    pop rbx
+    pop rax
+    mov byte [rax], bl
+address_4:
+    ;; push op
+    push 1
+address_5:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_6:
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_7:
+    ;; push op
+    push 101
+address_8:
+    ;; store
+    pop rbx
+    pop rax
+    mov byte [rax], bl
+address_9:
+    ;; push op
+    push 1
+address_10:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_11:
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_12:
+    ;; push op
+    push 108
+address_13:
+    ;; store
+    pop rbx
+    pop rax
+    mov byte [rax], bl
+address_14:
+    ;; push op
+    push 1
+address_15:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_16:
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_17:
+    ;; push op
+    push 108
+address_18:
+    ;; store
+    pop rbx
+    pop rax
+    mov byte [rax], bl
+address_19:
+    ;; push op
+    push 1
+address_20:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_21:
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_22:
+    ;; push op
+    push 111
+address_23:
+    ;; store
+    pop rbx
+    pop rax
+    mov byte [rax], bl
+address_24:
+    ;; push op
+    push 1
+address_25:
+    ;; plus
+    pop  rax
+    pop  rbx
+    add  rbx, rax
+    push rbx
+address_26:
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_27:
+    ;; push op
+    push 10
+address_28:
+    ;; store
+    pop rbx
+    pop rax
+    mov byte [rax], bl
+address_29:
+    ;; dup
+    pop  rax
+    push rax
+    push rax
+address_30:
+    ;; mem
+    push MEMORY
+    pop rax
+    add rax, 1024
+    push rax
+address_31:
+    ;; push op
+    push 1
+address_32:
+    ;; push op
+    push 1
+address_33:
+    ;; syscall3
+    pop rax
+    pop rdi
+    pop rsi
+    pop rdx
+    syscall
+address_34:
+    ;; push op
+    push 123
+address_35:
+    ;; push op
+    push 60
+address_36:
+    ;; syscall1
+    pop rax
+    pop rdi
+    syscall
+    ;;; return
+    mov rax, 60
+    mov rdi, 0
+    syscall
+    ;;;
 section .data
     ;;;
 section .bss
@@ -73,67 +243,3 @@ print_num:
     leave
     ret
  
-_start:
-address_0:
-    ;; push str
-    push 13
-    lea rax, [rel MEMORY]
-    add rax, 0
-    push rax
-    mov  byte [rax + 0], 72
-    mov  byte [rax + 1], 101
-    mov  byte [rax + 2], 108
-    mov  byte [rax + 3], 108
-    mov  byte [rax + 4], 111
-    mov  byte [rax + 5], 44
-    mov  byte [rax + 6], 32
-    mov  byte [rax + 7], 87
-    mov  byte [rax + 8], 111
-    mov  byte [rax + 9], 114
-    mov  byte [rax + 10], 108
-    mov  byte [rax + 11], 100
-    mov  byte [rax + 12], 10
-address_1:
-    ;; push op
-    push 1
-address_2:
-    ;; push op
-    push 1
-address_3:
-    ;; syscall3
-    pop rax
-    pop rdi
-    pop rsi
-    pop rdx
-    syscall
-address_4:
-    ;; push str
-    push 8
-    lea rax, [rel MEMORY]
-    add rax, 13
-    push rax
-    mov  byte [rax + 0], 70
-    mov  byte [rax + 1], 111
-    mov  byte [rax + 2], 111
-    mov  byte [rax + 3], 10
-    mov  byte [rax + 4], 66
-    mov  byte [rax + 5], 97
-    mov  byte [rax + 6], 114
-    mov  byte [rax + 7], 10
-address_5:
-    ;; push op
-    push 1
-address_6:
-    ;; push op
-    push 1
-address_7:
-    ;; syscall3
-    pop rax
-    pop rdi
-    pop rsi
-    pop rdx
-    syscall
-    ;;; return
-    mov rax, 60
-    mov rdi, 0
-    syscall
