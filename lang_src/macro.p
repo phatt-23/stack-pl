@@ -1,3 +1,3 @@
 macro write 1 1 syscall3 end
 
-"Hello, World\n" 1 1 syscall3
+"Hello, World\n" write
