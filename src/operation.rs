@@ -1,7 +1,7 @@
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum OperationType {
-    
+    // PushTypes
     PushInt,
     PushStr,
     // Stack
@@ -58,6 +58,8 @@ pub enum OperationValue {
     Str(String),
 }
 
+use std::collections::HashMap;
+
 use crate::location::Location;
 
 #[derive(Debug, Clone)]
@@ -106,5 +108,144 @@ impl std::fmt::Display for Operation {
         let value = format!("{:?}", self.value);
         write!(f, "Operation \t{} \taddress: {:<3} \tjump {:<3} \top_type: {:<12} \tvalue: {:<10}", 
             self.loc, self.address, self.jump, op_type, value)
+    }
+}
+
+impl OperationType {
+    pub fn from_str(s: &str) -> Option<Self> {
+        return HashMap::from([
+            // stack
+            ("dump",    OperationType::Dump),
+            ("dup",     OperationType::Duplicate),
+            ("dup2",    OperationType::Duplicate2),
+            ("drop",    OperationType::Drop),
+            ("swap",    OperationType::Swap),
+            ("over",    OperationType::Over),
+            // arithmetic
+            ("+",       OperationType::Add),
+            ("add",     OperationType::Add),
+            ("-",       OperationType::Subtract),
+            ("sub",     OperationType::Subtract),
+            ("*",       OperationType::Multiply),
+            ("mul",     OperationType::Multiply),
+            ("/",       OperationType::Divide),
+            ("div",     OperationType::Divide),
+            ("%",       OperationType::Modulo),
+            ("mod",     OperationType::Modulo),
+            // logic
+            ("=",       OperationType::Equal),
+            ("eq",      OperationType::Equal),
+            ("!=",      OperationType::NotEqual),
+            ("neq",     OperationType::NotEqual),
+            ("<",       OperationType::Less),
+            ("le",      OperationType::Less),
+            (">",       OperationType::Greater),
+            ("gr",      OperationType::Greater),
+            ("<=",      OperationType::LessEqual),
+            ("eql",     OperationType::LessEqual),
+            (">=",      OperationType::GreaterEqual),
+            ("egr",     OperationType::GreaterEqual),
+            ("!",       OperationType::Not),
+            ("not",     OperationType::Not),
+            // bitwise
+            ("<<",      OperationType::ShiftLeft),
+            ("shl",     OperationType::ShiftLeft),
+            (">>",      OperationType::ShiftRight),
+            ("shr",     OperationType::ShiftRight),
+            ("&",       OperationType::BitAnd),
+            ("band",    OperationType::BitAnd),
+            ("|",       OperationType::BitOr),
+            ("bor",     OperationType::BitOr),
+            // block
+            ("if",      OperationType::If),
+            ("else",    OperationType::Else),
+            ("while",   OperationType::While),
+            ("do",      OperationType::Do),
+            ("macro",   OperationType::Macro),
+            ("end",     OperationType::End),
+            // memory
+            ("mem",     OperationType::MemoryPush),
+            (",",       OperationType::MemoryLoad),
+            ("load",    OperationType::MemoryLoad),
+            (".",       OperationType::MemoryStore),
+            ("store",   OperationType::MemoryStore),
+            // syscall
+            ("syscall1",    OperationType::Syscall1),
+            ("syscall2",    OperationType::Syscall2),
+            ("syscall3",    OperationType::Syscall3),
+            ("syscall4",    OperationType::Syscall4),
+            ("syscall5",    OperationType::Syscall5),
+            ("syscall6",    OperationType::Syscall6),
+        ]).get(s).cloned();
+    }
+    pub fn from_str_simple(s: &str) -> Option<Self> {
+        return HashMap::from([
+            // stack
+            ("dump",    OperationType::Dump),
+            ("dup",     OperationType::Duplicate),
+            ("dup2",    OperationType::Duplicate2),
+            ("drop",    OperationType::Drop),
+            ("swap",    OperationType::Swap),
+            ("over",    OperationType::Over),
+            // arithmetic
+            ("+",       OperationType::Add),
+            ("add",     OperationType::Add),
+            ("-",       OperationType::Subtract),
+            ("sub",     OperationType::Subtract),
+            ("*",       OperationType::Multiply),
+            ("mul",     OperationType::Multiply),
+            ("/",       OperationType::Divide),
+            ("div",     OperationType::Divide),
+            ("%",       OperationType::Modulo),
+            ("mod",     OperationType::Modulo),
+            // logic
+            ("=",       OperationType::Equal),
+            ("eq",      OperationType::Equal),
+            ("!=",      OperationType::NotEqual),
+            ("neq",     OperationType::NotEqual),
+            ("<",       OperationType::Less),
+            ("le",      OperationType::Less),
+            (">",       OperationType::Greater),
+            ("gr",      OperationType::Greater),
+            ("<=",      OperationType::LessEqual),
+            ("eql",     OperationType::LessEqual),
+            (">=",      OperationType::GreaterEqual),
+            ("egr",     OperationType::GreaterEqual),
+            ("!",       OperationType::Not),
+            ("not",     OperationType::Not),
+            // bitwise
+            ("<<",      OperationType::ShiftLeft),
+            ("shl",     OperationType::ShiftLeft),
+            (">>",      OperationType::ShiftRight),
+            ("shr",     OperationType::ShiftRight),
+            ("&",       OperationType::BitAnd),
+            ("band",    OperationType::BitAnd),
+            ("|",       OperationType::BitOr),
+            ("bor",     OperationType::BitOr),
+            // memory
+            ("mem",     OperationType::MemoryPush),
+            (",",       OperationType::MemoryLoad),
+            ("load",    OperationType::MemoryLoad),
+            (".",       OperationType::MemoryStore),
+            ("store",   OperationType::MemoryStore),
+            // syscall
+            ("syscall1",    OperationType::Syscall1),
+            ("syscall2",    OperationType::Syscall2),
+            ("syscall3",    OperationType::Syscall3),
+            ("syscall4",    OperationType::Syscall4),
+            ("syscall5",    OperationType::Syscall5),
+            ("syscall6",    OperationType::Syscall6),
+        ]).get(s).cloned();
+    }
+    pub fn from_str_block(s: &str) -> Option<Self> {
+        return HashMap::from([
+            // block
+            ("if",      OperationType::If),
+            ("else",    OperationType::Else),
+            ("while",   OperationType::While),
+            ("do",      OperationType::Do),
+            ("macro",   OperationType::Macro),
+            ("end",     OperationType::End),
+        ]).get(s).cloned();
     }
 }

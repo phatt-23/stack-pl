@@ -66,7 +66,7 @@ fn handle_flag_with_file_arg(flag: &str, file: &'static str, line: u32, arg: Opt
 
 pub fn command_line_args() 
     -> Result< 
-        (Vec<CLArgument>, String, String, String, bool, bool), 
+        (String, String, String, bool, bool, bool, bool), 
         (&'static str, u32, String) >
 {
     let mut cl_args: Vec<CLArgument> = Vec::new();
@@ -139,7 +139,7 @@ pub fn command_line_args()
 
     
     let com_mode = if cl_args.iter().any(|arg| matches!(arg, CLArgument::Compilation)) {true} else {false};
-    // let sim_mode = if cl_args.iter().any(|arg| matches!(arg, CLArgument::Simulation)) {true} else {false};
+    let sim_mode = if cl_args.iter().any(|arg| matches!(arg, CLArgument::Simulation)) {true} else {false};
     // if !(com_mode || sim_mode) {
     //     return Err((file!(), line!(), format!("provide (-s, --sim) for simulation or (-c, --com) for compilation")));
     // }
@@ -173,6 +173,6 @@ pub fn command_line_args()
     let asm_file = asm_files.first().map_or_else(|| "output.asm".to_string(), |s| s.to_string());
     let out_file = out_files.first().map_or_else(|| "program".to_string(),    |s| s.to_string());
 
-    Ok((cl_args, src_file.to_string(), asm_file.to_string(), out_file.to_string(), debug, run))
+    Ok((src_file.to_string(), asm_file.to_string(), out_file.to_string(), sim_mode, com_mode, debug, run))
 }
 

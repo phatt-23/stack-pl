@@ -3,8 +3,12 @@
 # Path to my compiler/interpreter
 compiler=./target/debug/stack_based_PL
 
+# Dir of my examples
+src_dir=examples
+
 # Directory
 dir=test_diff
+
 
 # Output files
 sim_output=$dir/test_for_diffs_output.sim.txt
@@ -30,14 +34,15 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+
 # Process each .p file in lang_src directory
-for file in lang_src/*.p; do
+for file in $src_dir/*.p; do
     if [[ -e "$file" ]]; then
         echo "[TEST] Cmp: $file"
         # Compile and run simulation
         $compiler -c $file -o $program
-        $compiler -s $file > $sim_output
         $program > $com_output
+        $compiler -s $file > $sim_output
 
         # Compare outputs
         diff_output=$(diff $sim_output $com_output)
@@ -48,7 +53,6 @@ for file in lang_src/*.p; do
             if [ "$show" = true ]; then
                 echo "[SHOW]:"
                 diff --color=always $sim_output $com_output
-                exit
             fi
         fi
     
