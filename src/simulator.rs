@@ -173,6 +173,9 @@ pub fn simulate_program(program: &Vec<Operation>) {
             OperationKind::Macro => {
                 unreachable!("macro should have been gone by now");
             }
+            OperationKind::Include(file) => {
+                panic!("include file not inplemeted: {file}");
+            }
         /* ------------------------------- // Bitwise ------------------------------- */
             OperationKind::BitAnd => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <bit-and> '&' expects 2 operands (first)", op.loc));

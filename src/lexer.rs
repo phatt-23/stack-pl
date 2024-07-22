@@ -3,21 +3,21 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use crate::token::Token;
 
-pub fn lex_file_to_tokens(file: &str) -> Vec<Token> {
+pub fn lex_file_to_tokens(file: &str) -> Result<Vec<Token>, io::Error> {
     // println!("[INFO]: reading the program from '{}'", file);
-    let lines = read_lines(file);
-    lines.enumerate()
+    let lines = read_lines(file)?;
+    Ok(
+        lines.enumerate()
         .flat_map(|(row, line)| lex_line_to_tokens(line.unwrap(), file, row))
         .collect()
+    )
 }
 
 fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
 {
-    // println!("[INFO]: Original ({row}): {:?}", line);
     let line = line.split_at(
-            line.find("//").unwrap_or(line.len())
+        line.find("//").unwrap_or(line.len())
     ).0.to_string();
-    // println!("[INFO]: UnComment ({row}): {:?}", line);
 
     let mut col: usize = find_col(&line, 0, |x| x != b' ');
     let mut col_end: usize;
@@ -51,14 +51,12 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
     return tokens;
 }
 
-
-
 fn read_lines<P>(filename: P) 
-    -> io::Lines<io::BufReader<File>>
+    -> Result<io::Lines<io::BufReader<File>>, io::Error>
 where P: AsRef<std::path::Path> 
 {
-    let file = File::open(filename).unwrap_or_else(|e| panic!("[ERROR]: {e}") );
-    io::BufReader::new(file).lines()
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }
 
 fn find_col(line: &String, index: usize, find: impl Fn(u8) -> bool) -> usize {

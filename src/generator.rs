@@ -13,8 +13,8 @@ pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> io:
     writeln!(file, "_start:")?;
     
     let mut strings: Vec<String> = Vec::new();
-    for (index, op) in program.iter().enumerate() {
-        generate_operation(&mut file, index, op, &mut strings)?;
+    for op in program {
+        generate_operation(&mut file, op, &mut strings)?;
     }
     
     // writeln!(file, "address_{}:", program.len())?;
@@ -112,7 +112,6 @@ pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> io:
 
 fn generate_operation(
     file: &mut std::fs::File,
-    index: usize,
     op: &Operation,
     strings: &mut Vec<String>
 ) -> Result<i32, io::Error> {
@@ -330,6 +329,12 @@ fn generate_operation(
             writeln!(file, "    cmp rax, 0")?;
             writeln!(file, "    jz  address_{}", jump)?;
         }
+        OperationKind::End(jump) => {
+            writeln!(file, "    ;; end")?;
+            if *jump >= 0 {
+                writeln!(file, "    jmp address_{}", jump)?;
+            }
+        }
         OperationKind::Else(jump) => {
             writeln!(file, "    ;; else")?;
             writeln!(file, "    jmp address_{}", jump)?;
@@ -344,14 +349,12 @@ fn generate_operation(
             writeln!(file, "    ;; while")?;
             writeln!(file, "    ;  ignore")?;
         }
+        /* -------------------------------- // Preprocessor -------------------------- */
         OperationKind::Macro => {
             unreachable!("macro should have been gone by now");
         }
-        OperationKind::End(jump) => {
-            writeln!(file, "    ;; end")?;
-            if *jump >= 0 {
-                writeln!(file, "    jmp address_{}", jump)?;
-            }
+        OperationKind::Include(file) => {
+            panic!("include file not inplemeted: {file}");
         }
         /* -------------------------------- // Memory ------------------------------- */
         OperationKind::MemoryPush => {

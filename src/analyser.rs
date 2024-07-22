@@ -1,6 +1,7 @@
 use core::panic;
 use std::collections::HashMap;
 
+use crate::lexer;
 use crate::operation::{Operation, OperationKind};
 use crate::token::{Token, TokenKind};
 
@@ -48,7 +49,7 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
             }
         };
 
-        // crossreference block operations
+        // crossreference block operations and handle preprocessor
         match &mut op.kind {
             OperationKind::If(_) => stack.push(ip),
             OperationKind::While => stack.push(ip),
@@ -65,6 +66,18 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
                     *if_jump = (ip + 1) as i32; 
                 }
                 stack.push(ip);
+            }
+            OperationKind::End(end_jump) => {
+                let prev_ip = stack.pop().unwrap();
+                match &mut operations[prev_ip].kind {
+                    OperationKind::If(if_jump) => *if_jump = ip as i32,
+                    OperationKind::Else(else_jump) => *else_jump = ip as i32,
+                    OperationKind::Do(do_jump) => {
+                        *end_jump = *do_jump as i32;
+                        *do_jump = (ip + 1) as i32;
+                    }
+                    _ => panic!("[ERROR] `end` keyword found with no preceding block operations")
+                }
             }
             OperationKind::Macro => {
                 assert!(tokens.len() > 0, "macro must have a body and be closed by `end`");
@@ -93,22 +106,27 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
                 assert!(matches!(&end.kind, TokenKind::Word(v) if v == "end"));
                 // operations.pop(); // removing the `Macro` from operations - it is redundant and should be discarded
             }
-            OperationKind::End(end_jump) => {
-                let prev_ip = stack.pop().unwrap();
-                match &mut operations[prev_ip].kind {
-                    OperationKind::If(if_jump) => *if_jump = ip as i32,
-                    OperationKind::Else(else_jump) => *else_jump = ip as i32,
-                    OperationKind::Do(do_jump) => {
-                        *end_jump = *do_jump as i32;
-                        *do_jump = (ip + 1) as i32;
+            OperationKind::Include(_) => {
+                let include_file = tokens.pop().unwrap();
+                match &include_file.kind {
+                    TokenKind::String(inc_file) => {
+                        match lexer::lex_file_to_tokens(inc_file) {
+                            Ok(ref mut include_tokens) => {
+                                include_tokens.reverse();
+                                tokens.append(include_tokens);
+                            } 
+                            Err(e) => panic!("[ERROR]: {} Could not include file {include_file:?}, Error: {e}", &op.loc),
+                        }
                     }
-                    _ => panic!("[ERROR] `end` keyword found with no preceding block operations")
+                    TokenKind::Integer(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Integer`", &op.loc),
+                    TokenKind::Word(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Word`", &op.loc),
                 }
-            }
+        }
             _ => {}
         }
         
-        if !matches!(op.kind, OperationKind::Macro) {
+        // ignore preprocessor operations
+        if !matches!(op.kind, OperationKind::Macro | OperationKind::Include(_)) {
             op.address = address_counter;
             operations.push(op);
             address_counter += 1;

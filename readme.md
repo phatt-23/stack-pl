@@ -16,8 +16,8 @@ The compiler generates 'x86_64 intel' assembly code which is then compiled with 
 - [x] Memory Access
 - [x] String Literal
 - [x] Syscall
-- [ ] Macros
-- [ ] Types
+- [x] Macros
+- [x] Include Files
 
 ## Usage 
 

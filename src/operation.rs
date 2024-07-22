@@ -51,6 +51,8 @@ pub enum OperationKind {
     Syscall4,
     Syscall5,
     Syscall6,
+    // 
+    Include(String)
 }
 
 
@@ -81,6 +83,7 @@ impl std::fmt::Display for Operation {
 
 impl OperationKind {
     const JUMP_DEFAULT: i32 = -255;
+    const INCLUDE_DEFAULT: &'static str = "NoIncludeFileProvided";
 
     pub fn from_str(s: &str) -> Option<Self> {
         return HashMap::from([
@@ -128,11 +131,13 @@ impl OperationKind {
             ("bor",     OperationKind::BitOr),
             // block
             ("while",   OperationKind::While),
-            ("macro",   OperationKind::Macro),
             ("if",      OperationKind::If(Self::JUMP_DEFAULT)),
             ("else",    OperationKind::Else(Self::JUMP_DEFAULT)),
             ("do",      OperationKind::Do(Self::JUMP_DEFAULT)),
             ("end",     OperationKind::End(Self::JUMP_DEFAULT)),
+            // preprocessor
+            ("macro",   OperationKind::Macro),
+            ("include", OperationKind::Include(Self::INCLUDE_DEFAULT.to_string())),
             // memory
             ("mem",     OperationKind::MemoryPush),
             (",",       OperationKind::MemoryLoad),
