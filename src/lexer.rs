@@ -60,7 +60,7 @@ fn crossreference_blocks(program: &mut Vec<Operation>) {
     // process block instructions
     for ip in 0..program.len() {
         let op_type = program[ip].op_type;
-        match op_type  { 
+        match op_type  {
             OperationType::If => stack.push(ip),
             OperationType::While => stack.push(ip),
             OperationType::Do => {
@@ -72,6 +72,9 @@ fn crossreference_blocks(program: &mut Vec<Operation>) {
                 let if_index = stack.pop().unwrap();
                 program[if_index].jump = (ip + 1) as i32; 
                 stack.push(ip);
+            }
+            OperationType::Macro => {
+                todo!();
             }
             OperationType::End => {
                 let prev_index = stack.pop().unwrap();
@@ -107,6 +110,7 @@ fn parse_token_to_operation(index: usize, token: &Token) -> Operation {
         }
         (TokenType::Word, TokenValue::Str(value)) => {
             match value.as_str() {
+                // stack
                 "dump" => Operation::new_value_none(index, OperationType::Dump, &token.loc),
                 "dup"  => Operation::new_value_none(index, OperationType::Duplicate, &token.loc),
                 "dup2" => Operation::new_value_none(index, OperationType::Duplicate2, &token.loc),
@@ -114,12 +118,14 @@ fn parse_token_to_operation(index: usize, token: &Token) -> Operation {
                 "swap" => Operation::new_value_none(index, OperationType::Swap, &token.loc),
                 "over" => Operation::new_value_none(index, OperationType::Over, &token.loc),
                 
+                // arithmetic
                 "+" | "add" => Operation::new_value_none(index, OperationType::Add, &token.loc),
                 "-" | "sub" => Operation::new_value_none(index, OperationType::Subtract, &token.loc),
                 "*" | "mul" => Operation::new_value_none(index, OperationType::Multiply, &token.loc),
                 "/" | "div" => Operation::new_value_none(index, OperationType::Divide, &token.loc),
                 "%" | "mod" => Operation::new_value_none(index, OperationType::Modulo, &token.loc),
                 
+                // logic
                 "="  | "eq"  => Operation::new_value_none(index, OperationType::Equal, &token.loc),
                 "!=" | "neq" => Operation::new_value_none(index, OperationType::NotEqual, &token.loc),
                 "<"  | "le"  => Operation::new_value_none(index, OperationType::Less, &token.loc),
@@ -128,23 +134,32 @@ fn parse_token_to_operation(index: usize, token: &Token) -> Operation {
                 ">=" | "egr" => Operation::new_value_none(index, OperationType::GreaterEqual, &token.loc),
                 "!"  | "not" => Operation::new_value_none(index, OperationType::Not, &token.loc),
                 
+                // bitwise
                 "<<" | "shl"  => Operation::new_value_none(index, OperationType::ShiftLeft, &token.loc),
                 ">>" | "shr"  => Operation::new_value_none(index, OperationType::ShiftRight, &token.loc),
                 "&"  | "band" => Operation::new_value_none(index, OperationType::BitAnd, &token.loc),
                 "|"  | "bor"  => Operation::new_value_none(index, OperationType::BitOr, &token.loc),
                 
-                "end"   => Operation::new_value_none(index, OperationType::End, &token.loc),
+                // block
                 "if"    => Operation::new_value_none(index, OperationType::If, &token.loc),
                 "else"  => Operation::new_value_none(index, OperationType::Else, &token.loc),
                 "while" => Operation::new_value_none(index, OperationType::While, &token.loc),
                 "do"    => Operation::new_value_none(index, OperationType::Do, &token.loc),
+                "macro" => Operation::new_value_none(index, OperationType::Macro, &token.loc),
+                "end"   => Operation::new_value_none(index, OperationType::End, &token.loc),
                 
+                // memory
                 "mem"         => Operation::new_value_none(index, OperationType::MemoryPush, &token.loc),
                 "," | "load"  => Operation::new_value_none(index, OperationType::MemoryLoad, &token.loc),
                 "." | "store" => Operation::new_value_none(index, OperationType::MemoryStore, &token.loc),
                 
+                // syscall
                 "syscall1" => Operation::new_value_none(index, OperationType::Syscall1, &token.loc),
+                "syscall2" => Operation::new_value_none(index, OperationType::Syscall2, &token.loc),
                 "syscall3" => Operation::new_value_none(index, OperationType::Syscall3, &token.loc),
+                "syscall4" => Operation::new_value_none(index, OperationType::Syscall4, &token.loc),
+                "syscall5" => Operation::new_value_none(index, OperationType::Syscall5, &token.loc),
+                "syscall6" => Operation::new_value_none(index, OperationType::Syscall6, &token.loc),
                 
                 _ => panic!("Unknown word with value {:?}", value)
             }

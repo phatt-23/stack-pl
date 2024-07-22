@@ -33,23 +33,24 @@ done
 # Process each .p file in lang_src directory
 for file in lang_src/*.p; do
     if [[ -e "$file" ]]; then
-        echo "[TEST info] comparing: $file"
+        echo "[TEST] Cmp: $file"
         # Compile and run simulation
         $compiler -c $file -o $program
         $compiler -s $file > $sim_output
         $program > $com_output
+
+        # Compare outputs
+        diff_output=$(diff $sim_output $com_output)
+        if [[ -z "$diff_output" ]]; then 
+            echo "[TEST] Okay: simulation == compilation"
+        else
+            echo "[TEST] Diff: simulation != compilation"
+            if [ "$show" = true ]; then
+                echo "[SHOW]:"
+                diff --color=always $sim_output $com_output
+                exit
+            fi
+        fi
+    
     fi
 done
-
-# Compare outputs
-diff_output=$(diff $sim_output $com_output)
-
-if [[ -z "$diff_output" ]]; then 
-    echo "[TEST info] okay: simulation == compilation"
-else
-    echo "[TEST info] discrepancy: simulation != compilation"
-    if [ "$show" = true ]; then
-        echo "[SHOW]:"
-        diff --color=always $sim_output $com_output
-    fi
-fi

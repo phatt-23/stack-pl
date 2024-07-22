@@ -18,23 +18,6 @@ address_3:
     pop rsi
     pop rdx
     syscall
-address_4:
-    ;; push str
-    push 8
-    push str_1
-address_5:
-    ;; push op
-    push 1
-address_6:
-    ;; push op
-    push 1
-address_7:
-    ;; syscall3
-    pop rax
-    pop rdi
-    pop rsi
-    pop rdx
-    syscall
     ;;; return
     mov rax, 60
     mov rdi, 0
@@ -42,7 +25,6 @@ address_7:
     ;;;
 section .data
     str_0: db 72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 10
-    str_1: db 70, 111, 111, 10, 66, 97, 114, 10
     ;;;
 section .bss
     MEMORY: resb 65024

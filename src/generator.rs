@@ -7,7 +7,7 @@ const STRING_SPACE: usize = 1_024;
 const MEMORY_SPACE: usize = 64_000;
 static mut STRING_SPACE_COUNTER: usize = 0;
 
-pub fn create_assembly(program: &Vec<Operation>, output: &str) -> io::Result<i32> {
+pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> io::Result<i32> {
     let mut file = File::create(output).expect("creation failed");
     writeln!(file, "bits 64")?;
     writeln!(file, "    ;;;")?;
@@ -321,12 +321,6 @@ fn generate_operation(
             writeln!(file, "    push  rbx")?;
         }
         /* ---------------------------------- // Block --------------------------------- */
-        (OperationType::End, OperationValue::Nothing) => {
-            writeln!(file, "    ;; end")?;
-            if op.jump >= 0 {
-                writeln!(file, "    jmp address_{}", op.jump)?;
-            }
-        }
         (OperationType::If, OperationValue::Nothing) => {
             writeln!(file, "    ;; if")?;
             writeln!(file, "    pop rax")?;
@@ -346,6 +340,12 @@ fn generate_operation(
         (OperationType::While, OperationValue::Nothing) => {
             writeln!(file, "    ;; while")?;
             writeln!(file, "    ;  ignore")?;
+        }
+        (OperationType::End, OperationValue::Nothing) => {
+            writeln!(file, "    ;; end")?;
+            if op.jump >= 0 {
+                writeln!(file, "    jmp address_{}", op.jump)?;
+            }
         }
         /* -------------------------------- // Memory ------------------------------- */
         (OperationType::MemoryPush, OperationValue::Nothing) => {

@@ -23,7 +23,7 @@ fn main() {
     }
     
     // generate assembly file
-    generator::create_assembly(&operations, &asm_file).unwrap();
+    generator::generate_linux_nasm_x86_64(&operations, &asm_file).unwrap();
     
     // simulate or compile the file
     cl_args.iter().for_each(|arg| {

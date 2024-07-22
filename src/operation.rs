@@ -36,14 +36,19 @@ pub enum OperationType {
     Else,
     While,
     Do,
-    End, // enclosing
+    Macro,
+    End,
     // Memory
     MemoryPush,
     MemoryLoad,
     MemoryStore,
     // Syscall
-    Syscall3,
     Syscall1,
+    Syscall2,
+    Syscall3,
+    Syscall4,
+    Syscall5,
+    Syscall6,
 }
 
 #[derive(Debug, Clone)]

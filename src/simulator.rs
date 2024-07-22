@@ -1,10 +1,10 @@
-use crate::operation::OperationValue;
+use crate::operation::{Operation, OperationType, OperationValue};
 
-use crate::operation::{Operation, OperationType};
+const SILENT: bool = true;
+const STRING_SPACE: usize =  1_024;
+const MEMORY_SPACE: usize = 64_000;
 
 pub fn simulate_program(program: &Vec<Operation>) {
-    const STRING_SPACE: usize =  1_024;
-    const MEMORY_SPACE: usize = 64_000;
     let mut string_space_counter: usize = 0;
 
     let mut stack: Vec<i32> = Vec::new();
@@ -218,7 +218,9 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 let arg1 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall1> 'syscall1' expects 2 operands (second)", op.loc));
                 match code {
                     60 => { // exit
-                        println!("<sys_exit> ({arg1})");
+                        if !SILENT {
+                            println!("<sys_exit> ({arg1})");
+                        }
                         break;
                     }
                     _ => panic!("[ERROR]: {} <syscall1> Unknown syscall with 2 args", op.loc)
