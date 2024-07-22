@@ -9,11 +9,12 @@ mem dup 72  .
 
 dup mem - mem 1 1 syscall3
 
-// mem dump // this will be different in com and sim
+// mem dump // <---- this will be different in com and sim
 
 0
 0
 dump dump
-// 123 60 syscall1
+
+123 60 syscall1
 
 

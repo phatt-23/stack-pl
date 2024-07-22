@@ -24,7 +24,7 @@ address_4:
     push str_1
 address_5:
     ;; push op
-    push 2
+    push 1
 address_6:
     ;; push op
     push 1
@@ -59,8 +59,8 @@ address_11:
     syscall
     ;;;
 section .data
-    str_0: db 72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 10
-    str_1: db 70, 111, 111, 111, 111, 111, 111, 111, 32, 66, 97, 97, 114, 10
+    str_0: db 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 0x0a
+    str_1: db 0x46, 0x6f, 0x6f, 0x6f, 0x6f, 0x6f, 0x6f, 0x6f, 0x20, 0x42, 0x61, 0x61, 0x72, 0x0a
     ;;;
 section .bss
     MEMORY: resb 65024

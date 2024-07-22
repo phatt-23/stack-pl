@@ -1,7 +1,9 @@
 
-macro (()) 1 1 syscall3 end
-    
-macro write 2 1 syscall3 end
+macro [[]] 1 syscall3 end
+
+macro (()) 1 [[]] end       // will get expended to 1 1 syscall3
+
+macro write (()) end        // alias of (())
 
 "Hello, World\n" (()) "Fooooooo Baar\n" write
 

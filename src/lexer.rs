@@ -1,25 +1,22 @@
 use core::panic;
 use std::fs::File;
 use std::io::{self, BufRead};
-use crate::operation::{OperationType, Operation};
-use crate::token::{Token, TokenKind};
+use crate::token::Token;
 
 pub fn lex_file_to_tokens(file: &str) -> Vec<Token> {
     // println!("[INFO]: reading the program from '{}'", file);
     let lines = read_lines(file);
-    return lines
-        .enumerate()
+    lines.enumerate()
         .flat_map(|(row, line)| lex_line_to_tokens(line.unwrap(), file, row))
-        .collect();
+        .collect()
 }
 
 fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
 {
     // println!("[INFO]: Original ({row}): {:?}", line);
-    let line = line
-        .split_at(line.find("//")
-        .unwrap_or_else(|| line.len()))
-        .0.to_string();
+    let line = line.split_at(
+            line.find("//").unwrap_or(line.len())
+    ).0.to_string();
     // println!("[INFO]: UnComment ({row}): {:?}", line);
 
     let mut col: usize = find_col(&line, 0, |x| x != b' ');

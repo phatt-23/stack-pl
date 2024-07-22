@@ -1,7 +1,6 @@
-use core::panic;
 use std::fs::File;
 use std::io::{self, Write};
-use crate::operation::{Operation, OperationType, OperationValue};
+use crate::operation::{Operation, OperationKind};
 
 const STRING_SPACE: usize = 1_024;
 const MEMORY_SPACE: usize = 64_000;
@@ -27,8 +26,12 @@ pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> io:
     writeln!(file, "section .data")?;
 
     for (index, string) in strings.iter().enumerate() {
-        let bytes = format!("{:?}", string.as_bytes()).replace(|c| c == '[' || c == ']', "");
-        writeln!(file, "    str_{}: db {}", index, bytes)?;
+        let b: Vec<_> = string.as_bytes().iter()
+            .map(|x| format!("0x{x:02x}"))
+            .collect();
+        let bytes = format!("{:?}", b)
+            .replace(|c| c == '[' || c == ']' || c == '"', "");
+        writeln!(file, "    str_{index}: db {bytes}")?;
     }
 
     writeln!(file, "    ;;;")?;
@@ -113,14 +116,14 @@ fn generate_operation(
     op: &Operation,
     strings: &mut Vec<String>
 ) -> Result<i32, io::Error> {
-    writeln!(file, "address_{}:", index)?;
-    match (&op.op_type, &op.value) {
+    writeln!(file, "address_{}:", op.address)?;
+    match &op.kind {
         /* --------------------------------- // Push -------------------------------- */
-        (OperationType::PushInt, OperationValue::Int(value)) => {
+        OperationKind::PushInt(value) => {
             writeln!(file, "    ;; push op")?;
             writeln!(file, "    push {}", value)?;
         }
-        (OperationType::PushStr, OperationValue::Str(value)) => {
+        OperationKind::PushStr(value) => {
             let size = value.len();
             // writeln!(file, "    ;; push str")?;
             // writeln!(file, "    push {}", size)?;                           // pushing the string length
@@ -143,22 +146,22 @@ fn generate_operation(
             }
         }
         /* -------------------------------- // Stack -------------------------------- */
-        (OperationType::Dump, OperationValue::Nothing) => {
+        OperationKind::Dump => {
             writeln!(file, "    ;; dump")?;
             writeln!(file, "    pop rdi")?;
             writeln!(file, "    call print_num")?;
         }
-        (OperationType::Drop, OperationValue::Nothing) => {
+        OperationKind::Drop => {
             writeln!(file, "    ;; drop")?;
             writeln!(file, "    pop rax")?;
         }
-        (OperationType::Duplicate, OperationValue::Nothing) => {
+        OperationKind::Duplicate => {
             writeln!(file, "    ;; dup")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    push rax")?;
             writeln!(file, "    push rax")?;
         }
-        (OperationType::Duplicate2, OperationValue::Nothing) => {
+        OperationKind::Duplicate2 => {
             writeln!(file, "    ;; dup 2")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    pop  rbx")?;
@@ -167,7 +170,7 @@ fn generate_operation(
             writeln!(file, "    push rbx")?;
             writeln!(file, "    push rax")?;
         }
-        (OperationType::Over, OperationValue::Nothing) => {
+        OperationKind::Over => {
             writeln!(file, "    ;; over")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    pop  rbx")?;
@@ -175,7 +178,7 @@ fn generate_operation(
             writeln!(file, "    push rax")?;
             writeln!(file, "    push rbx")?;
         }
-        (OperationType::Swap, OperationValue::Nothing) => {
+        OperationKind::Swap => {
             writeln!(file, "    ;; swap")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    pop  rbx")?;
@@ -183,21 +186,21 @@ fn generate_operation(
             writeln!(file, "    push rbx")?;
         }
         /* ------------------------------ // Arithmetic ----------------------------- */
-        (OperationType::Add, OperationValue::Nothing) => {
+        OperationKind::Add => {
             writeln!(file, "    ;; plus")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    pop  rbx")?;
             writeln!(file, "    add  rbx, rax")?;
             writeln!(file, "    push rbx")?;
         }
-        (OperationType::Subtract, OperationValue::Nothing) => {
+        OperationKind::Subtract => {
             writeln!(file, "    ;; minus")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    pop  rbx")?;
             writeln!(file, "    sub  rbx, rax")?;
             writeln!(file, "    push rbx")?;
         }
-        (OperationType::Multiply, OperationValue::Nothing) => {
+        OperationKind::Multiply => {
             writeln!(file, "    ;; mult")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    pop   rax")?;
@@ -205,7 +208,7 @@ fn generate_operation(
             writeln!(file, "    imul  rbx")?; // rax * rbx = rdx:rax (128-bit integer)
             writeln!(file, "    push  rax")?;
         }
-        (OperationType::Divide, OperationValue::Nothing) => {
+        OperationKind::Divide => {
             writeln!(file, "    ;; divide")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    pop   rax")?;
@@ -213,7 +216,7 @@ fn generate_operation(
             writeln!(file, "    idiv  rbx")?; // rax / rbx = rax     remainder rdx
             writeln!(file, "    push  rax")?;
         }
-        (OperationType::Modulo, OperationValue::Nothing) => {
+        OperationKind::Modulo => {
             writeln!(file, "    ;; modulo")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    pop   rax")?;
@@ -222,7 +225,7 @@ fn generate_operation(
             writeln!(file, "    push  rdx")?;
         }
         /* -------------------------------- // Logic -------------------------------- */
-        (OperationType::Equal, OperationValue::Nothing) => {
+        OperationKind::Equal => {
             writeln!(file, "    ;; eq")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
@@ -232,7 +235,7 @@ fn generate_operation(
             writeln!(file, "    cmove rbx, rax")?;
             writeln!(file, "    push  rbx")?;
         }
-        (OperationType::NotEqual, OperationValue::Nothing) => {
+        OperationKind::NotEqual => {
             writeln!(file, "    ;; not eq")?;
             writeln!(file, "    pop    rax")?;
             writeln!(file, "    pop    rbx")?;
@@ -242,7 +245,7 @@ fn generate_operation(
             writeln!(file, "    cmovne rbx, rax")?;
             writeln!(file, "    push   rbx")?;
         }
-        (OperationType::Less, OperationValue::Nothing) => {
+        OperationKind::Less => {
             writeln!(file, "    ;; le")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
@@ -252,7 +255,7 @@ fn generate_operation(
             writeln!(file, "    cmovl rbx, rax")?;
             writeln!(file, "    push  rbx")?;
         }
-        (OperationType::Greater, OperationValue::Nothing) => {
+        OperationKind::Greater => {
             writeln!(file, "    ;; gr")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
@@ -262,7 +265,7 @@ fn generate_operation(
             writeln!(file, "    cmovg rbx, rax")?;
             writeln!(file, "    push  rbx")?;
         }
-        (OperationType::GreaterEqual, OperationValue::Nothing) => {
+        OperationKind::GreaterEqual => {
             writeln!(file, "    ;; eqgr")?;
             writeln!(file, "    pop    rax")?;
             writeln!(file, "    pop    rbx")?;
@@ -272,7 +275,7 @@ fn generate_operation(
             writeln!(file, "    cmovge rbx, rax")?;
             writeln!(file, "    push   rbx")?;
         }
-        (OperationType::LessEqual, OperationValue::Nothing) => {
+        OperationKind::LessEqual => {
             writeln!(file, "    ;; eqle")?;
             writeln!(file, "    pop    rax")?;
             writeln!(file, "    pop    rbx")?;
@@ -282,7 +285,7 @@ fn generate_operation(
             writeln!(file, "    cmovle rbx, rax")?;
             writeln!(file, "    push   rbx")?;
         }
-        (OperationType::Not, OperationValue::Nothing) => {
+        OperationKind::Not => {
             writeln!(file, "    ;; not")?;
             writeln!(file, "    pop    rax")?;
             writeln!(file, "    cmp    rax, 0")?;
@@ -292,28 +295,28 @@ fn generate_operation(
             writeln!(file, "    push   rbx")?;
         }
         /* ------------------------------- // Bitwise ------------------------------- */
-        (OperationType::BitAnd, OperationValue::Nothing) => {
+        OperationKind::BitAnd => {
             writeln!(file, "    ;; bit and")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    and   rbx, rax")?;
             writeln!(file, "    push  rbx")?;
         }
-        (OperationType::BitOr, OperationValue::Nothing) => {
+        OperationKind::BitOr => {
             writeln!(file, "    ;; bit or")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    or    rbx, rax")?;
             writeln!(file, "    push  rbx")?;
         }
-        (OperationType::ShiftRight, OperationValue::Nothing) => {
+        OperationKind::ShiftRight => {
             writeln!(file, "    ;; shift right")?;
             writeln!(file, "    pop   rcx")?;
             writeln!(file, "    pop   rbx")?;
             writeln!(file, "    shr   rbx, cl")?;
             writeln!(file, "    push  rbx")?;
         }
-        (OperationType::ShiftLeft, OperationValue::Nothing) => {
+        OperationKind::ShiftLeft => {
             writeln!(file, "    ;; shift left")?;
             writeln!(file, "    pop   rcx")?;
             writeln!(file, "    pop   rbx")?;
@@ -321,34 +324,37 @@ fn generate_operation(
             writeln!(file, "    push  rbx")?;
         }
         /* ---------------------------------- // Block --------------------------------- */
-        (OperationType::If, OperationValue::Nothing) => {
+        OperationKind::If(jump) => {
             writeln!(file, "    ;; if")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    cmp rax, 0")?;
-            writeln!(file, "    jz  address_{}", op.jump)?;
+            writeln!(file, "    jz  address_{}", jump)?;
         }
-        (OperationType::Else, OperationValue::Nothing) => {
+        OperationKind::Else(jump) => {
             writeln!(file, "    ;; else")?;
-            writeln!(file, "    jmp address_{}", op.jump)?;
+            writeln!(file, "    jmp address_{}", jump)?;
         }
-        (OperationType::Do, OperationValue::Nothing) => {
+        OperationKind::Do(jump) => {
             writeln!(file, "    ;; do")?;
             writeln!(file, "    pop  rax")?;
             writeln!(file, "    cmp  rax, 0")?;
-            writeln!(file, "    jz   address_{}", op.jump)?;
+            writeln!(file, "    jz   address_{}", jump)?;
         }
-        (OperationType::While, OperationValue::Nothing) => {
+        OperationKind::While => {
             writeln!(file, "    ;; while")?;
             writeln!(file, "    ;  ignore")?;
         }
-        (OperationType::End, OperationValue::Nothing) => {
+        OperationKind::Macro => {
+            unreachable!("macro should have been gone by now");
+        }
+        OperationKind::End(jump) => {
             writeln!(file, "    ;; end")?;
-            if op.jump >= 0 {
-                writeln!(file, "    jmp address_{}", op.jump)?;
+            if *jump >= 0 {
+                writeln!(file, "    jmp address_{}", jump)?;
             }
         }
         /* -------------------------------- // Memory ------------------------------- */
-        (OperationType::MemoryPush, OperationValue::Nothing) => {
+        OperationKind::MemoryPush => {
             writeln!(file, "    ;; mem")?;
             // push the address of MEMORY in .bss
             writeln!(file, "    push MEMORY")?; 
@@ -356,34 +362,34 @@ fn generate_operation(
             writeln!(file, "    add rax, {}", STRING_SPACE)?;
             writeln!(file, "    push rax")?;
         }
-        (OperationType::MemoryLoad, OperationValue::Nothing) => {
+        OperationKind::MemoryLoad => {
             writeln!(file, "    ;; load")?;
             writeln!(file, "    pop   rax")?;
             writeln!(file, "    xor   rbx, rbx")?;
             writeln!(file, "    mov   bl, byte [rax]")?;
             writeln!(file, "    push  rbx")?;
         }
-        (OperationType::MemoryStore, OperationValue::Nothing) => {
+        OperationKind::MemoryStore => {
             writeln!(file, "    ;; store")?;
             writeln!(file, "    pop rbx")?; // value
             writeln!(file, "    pop rax")?; // address
             writeln!(file, "    mov byte [rax], bl")?; // address
         }
         /* ------------------------------- // Syscall ------------------------------- */
-        (OperationType::Syscall1, OperationValue::Nothing) => {
+        OperationKind::Syscall1 => {
             writeln!(file, "    ;; syscall1")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    pop rdi")?;
             writeln!(file, "    syscall")?;
         }
-        (OperationType::Syscall2, OperationValue::Nothing) => {
+        OperationKind::Syscall2 => {
             writeln!(file, "    ;; syscall3")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    pop rdi")?;
             writeln!(file, "    pop rsi")?;
             writeln!(file, "    syscall")?;
         }
-        (OperationType::Syscall3, OperationValue::Nothing) => {
+        OperationKind::Syscall3 => {
             writeln!(file, "    ;; syscall3")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    pop rdi")?;
@@ -391,7 +397,7 @@ fn generate_operation(
             writeln!(file, "    pop rdx")?;
             writeln!(file, "    syscall")?;
         }
-        (OperationType::Syscall4, OperationValue::Nothing) => {
+        OperationKind::Syscall4 => {
             writeln!(file, "    ;; syscall4")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    pop rdi")?;
@@ -400,7 +406,7 @@ fn generate_operation(
             writeln!(file, "    pop r10")?;
             writeln!(file, "    syscall")?;
         }
-        (OperationType::Syscall5, OperationValue::Nothing) => {
+        OperationKind::Syscall5 => {
             writeln!(file, "    ;; syscall5")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    pop rdi")?;
@@ -410,7 +416,7 @@ fn generate_operation(
             writeln!(file, "    pop r8")?;
             writeln!(file, "    syscall")?;
         }
-        (OperationType::Syscall6, OperationValue::Nothing) => {
+        OperationKind::Syscall6 => {
             writeln!(file, "    ;; syscall6")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    pop rdi")?;
@@ -421,10 +427,6 @@ fn generate_operation(
             writeln!(file, "    pop r9")?;
             writeln!(file, "    syscall")?;
         }
-        (OperationType::Macro, _) => {
-            println!("refactor operation types and values together you fuck");
-        }
-        (op_type, op_value) => panic!("Unexpected OperationType and OperationValue combination: type: {:?}, value: {:?}", op_type, op_value)
     }
     Ok(0)
 }
