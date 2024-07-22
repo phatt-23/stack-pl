@@ -226,6 +226,9 @@ pub fn simulate_program(program: &Vec<Operation>) {
                     _ => panic!("[ERROR]: {} <syscall1> Unknown syscall with 2 args", op.loc)
                 }
             }
+            (OperationType::Syscall2, OperationValue::Nothing) => {
+                todo!();
+            }
             (OperationType::Syscall3 , OperationValue::Nothing) => {
                 let code = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall3> 'syscall3' expects 4 operands (first)", op.loc));
                 let arg1 = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <syscall3> 'syscall3' expects 4 operands (second)", op.loc));
@@ -243,6 +246,15 @@ pub fn simulate_program(program: &Vec<Operation>) {
                     }
                     _ => panic!("[ERROR]: {} <syscall3> Unknown syscall with 4 args", op.loc)
                 }
+            }            
+            (OperationType::Syscall4, OperationValue::Nothing) => {
+                todo!();
+            }
+            (OperationType::Syscall5, OperationValue::Nothing) => {
+                todo!();
+            }
+            (OperationType::Syscall6, OperationValue::Nothing) => {
+                todo!();
             }
             (op_type, op_value) => panic!("Unexpected OperationType and OperationValue combination: type: {:?}, value: {:?}", op_type, op_value)
         }

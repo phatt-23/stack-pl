@@ -376,12 +376,49 @@ fn generate_operation(
             writeln!(file, "    pop rdi")?;
             writeln!(file, "    syscall")?;
         }
+        (OperationType::Syscall2, OperationValue::Nothing) => {
+            writeln!(file, "    ;; syscall3")?;
+            writeln!(file, "    pop rax")?;
+            writeln!(file, "    pop rdi")?;
+            writeln!(file, "    pop rsi")?;
+            writeln!(file, "    syscall")?;
+        }
         (OperationType::Syscall3, OperationValue::Nothing) => {
             writeln!(file, "    ;; syscall3")?;
             writeln!(file, "    pop rax")?;
             writeln!(file, "    pop rdi")?;
             writeln!(file, "    pop rsi")?;
             writeln!(file, "    pop rdx")?;
+            writeln!(file, "    syscall")?;
+        }
+        (OperationType::Syscall4, OperationValue::Nothing) => {
+            writeln!(file, "    ;; syscall4")?;
+            writeln!(file, "    pop rax")?;
+            writeln!(file, "    pop rdi")?;
+            writeln!(file, "    pop rsi")?;
+            writeln!(file, "    pop rdx")?;
+            writeln!(file, "    pop r10")?;
+            writeln!(file, "    syscall")?;
+        }
+        (OperationType::Syscall5, OperationValue::Nothing) => {
+            writeln!(file, "    ;; syscall5")?;
+            writeln!(file, "    pop rax")?;
+            writeln!(file, "    pop rdi")?;
+            writeln!(file, "    pop rsi")?;
+            writeln!(file, "    pop rdx")?;
+            writeln!(file, "    pop r10")?;
+            writeln!(file, "    pop r8")?;
+            writeln!(file, "    syscall")?;
+        }
+        (OperationType::Syscall6, OperationValue::Nothing) => {
+            writeln!(file, "    ;; syscall6")?;
+            writeln!(file, "    pop rax")?;
+            writeln!(file, "    pop rdi")?;
+            writeln!(file, "    pop rsi")?;
+            writeln!(file, "    pop rdx")?;
+            writeln!(file, "    pop r10")?;
+            writeln!(file, "    pop r8")?;
+            writeln!(file, "    pop r9")?;
             writeln!(file, "    syscall")?;
         }
         (op_type, op_value) => panic!("Unexpected OperationType and OperationValue combination: type: {:?}, value: {:?}", op_type, op_value)
