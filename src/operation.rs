@@ -65,8 +65,8 @@ use crate::location::Location;
 #[derive(Debug, Clone)]
 pub struct Operation {
     pub loc: Location,
-    pub op_type: OperationType,
     pub address: usize,
+    pub op_type: OperationType,
     pub value: OperationValue,
     pub jump: i32,
 }
@@ -106,7 +106,7 @@ impl std::fmt::Display for Operation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let op_type = format!("{:?}", self.op_type);
         let value = format!("{:?}", self.value);
-        write!(f, "Operation \t{} \taddress: {:<3} \tjump {:<3} \top_type: {:<12} \tvalue: {:<10}", 
+        write!(f, "Operation {}\taddress: {:<3}\tjump: {:<3}\top_type: {:<12}\tvalue: {:<10}", 
             self.loc, self.address, self.jump, op_type, value)
     }
 }

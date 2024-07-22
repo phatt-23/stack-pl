@@ -421,6 +421,9 @@ fn generate_operation(
             writeln!(file, "    pop r9")?;
             writeln!(file, "    syscall")?;
         }
+        (OperationType::Macro, _) => {
+            println!("refactor operation types and values together you fuck");
+        }
         (op_type, op_value) => panic!("Unexpected OperationType and OperationValue combination: type: {:?}, value: {:?}", op_type, op_value)
     }
     Ok(0)

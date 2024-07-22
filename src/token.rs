@@ -40,7 +40,7 @@ impl Token {
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let kind = format!("{:?}", self.kind);
-        write!(f, "Token \tloc: {} \tkind: {:<10}", 
+        write!(f, "Token {}\tkind: {:<10}", 
             self.loc, kind
         )
     }

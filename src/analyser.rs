@@ -10,12 +10,13 @@ struct Macro {
     pub tokens: Vec<Token>,
 }
 
-pub fn compile_tokens_to_operations(tokens: &mut Vec<Token>) -> Vec<Operation> {
+pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
     let mut operations: Vec<Operation> = Vec::new();
     let mut stack: Vec<usize> = Vec::new();
     let mut macros: HashMap<String, Macro> = HashMap::new();
 
     let mut ip: usize = 0;
+    let mut tokens = tokens.clone();
     tokens.reverse();
     while tokens.len() > 0 {
         let token = tokens.pop().unwrap();
@@ -27,23 +28,24 @@ pub fn compile_tokens_to_operations(tokens: &mut Vec<Token>) -> Vec<Operation> {
                 if let Some(op_type) = OperationType::from_str(value) {
                     Operation::new_value_none(ip, op_type, &token.loc)
                 } else {
-                    // nothing matches
-                    // println!("{value:?} handle unknown words, are they in macros vector? if yes then expand it, if not they truly are forbidden");
                     if let Some(m) = macros.get_mut(value) {
-                        // panic!("handle macro expansion {m:?}");
-                        while let Some(t) = m.tokens.pop() {
-                            tokens.insert(0, t.clone()); 
-                            println!("[INFO]: inserted {t} to tokens");
+                        // println!("handle macro expansion {m:?}");
+                        for i in 0..m.tokens.len() {
+                            let t = m.tokens.get(i).unwrap();
+                            tokens.push(t.clone()); 
+                            // println!("[INFO]: inserted {t} to tokens");
                         }
                         
                         continue;   
                     }
+                    // println!("{value:?} handle unknown words, are they in macros vector? if yes then expand it, if not they truly are forbidden");
+                    // nothing matches
                     panic!("[ERROR]: Unknown word, identifier {} {:?}", token.loc, token.kind);
                 }
             }
         };
         operations.push(op.clone());
-        match op.op_type  {
+        match op.op_type {
             OperationType::If => stack.push(ip),
             OperationType::While => stack.push(ip),
             OperationType::Do => {
@@ -59,8 +61,7 @@ pub fn compile_tokens_to_operations(tokens: &mut Vec<Token>) -> Vec<Operation> {
                 stack.push(ip);
             }
             OperationType::Macro => {
-                // todo!("{} handle macro conversion to multiple tokens", op.loc);
-                // TODO: find out if macro name is free, add it to macros vector, append tokens to Macro struct till `end` is found
+                // find out if macro name is free, add it to macros vector, append tokens to Macro struct till `end` is found
                 assert!(tokens.len() > 0, "macro must have a body and `end`");
                 // get name
                 let name = match tokens.pop().unwrap().kind {
@@ -69,10 +70,17 @@ pub fn compile_tokens_to_operations(tokens: &mut Vec<Token>) -> Vec<Operation> {
                             Some(m) => panic!(
                                 "[ERROR]: {ol} Macro with identifier {v:?} already implemented at {ml} (can't use the same identifier for macros)", ol=&op.loc, ml=&m.loc
                             ),
-                            None => v
+                            None => {
+                                // check if macro name is one of the keywords
+                                if let Some(op_type) = OperationType::from_str(&v) {
+                                    panic!("[ERROR]: {} Can't use a builtin keyword {v:?} of {op_type:?} as an identifier for `macro`", &op.loc);
+                                }
+                                v
+                            }
                         }
                     }
-                    _ => panic!()
+                    TokenKind::Integer(v) => panic!("[ERROR]: {} {v:?} - Expected `macro` identifier `Word` but found `Integer`", &op.loc),
+                    TokenKind::String(v) => panic!("[ERROR]: {} {v:?} - Expected `macro` identifier `Word` but found `String`", &op.loc),
                 };
                 
                 macros.insert(
@@ -96,6 +104,8 @@ pub fn compile_tokens_to_operations(tokens: &mut Vec<Token>) -> Vec<Operation> {
 
                 assert!(matches!(&end.kind, TokenKind::Word(v) if v == "end"));
                 
+                // println!("[DBG]: removing the macro from operaions");
+                operations.pop();
                 // todo!("macro added succesfully {m:#?}");
             }
             OperationType::End => {
@@ -120,41 +130,41 @@ pub fn compile_tokens_to_operations(tokens: &mut Vec<Token>) -> Vec<Operation> {
     return operations;
 }
 
-pub fn crossreference_blocks(program: &mut Vec<Operation>) {
-    let mut stack: Vec<usize> = Vec::new();
+// pub fn crossreference_blocks(program: &mut Vec<Operation>) {
+//     let mut stack: Vec<usize> = Vec::new();
     
-    // process block instructions
-    for ip in 0..program.len() {
-        let op_type = program[ip].op_type;
-        match op_type  {
-            OperationType::If => stack.push(ip),
-            OperationType::While => stack.push(ip),
-            OperationType::Do => {
-                let while_ip = stack.pop().unwrap();
-                assert!(program[while_ip].op_type == OperationType::While);
-                program[ip].jump = while_ip as i32;
-                stack.push(ip);
-            }
-            OperationType::Else => {
-                let if_ip = stack.pop().unwrap();
-                assert!(program[if_ip].op_type == OperationType::If);
-                program[if_ip].jump = (ip + 1) as i32; 
-                stack.push(ip);
-            }
-            OperationType::Macro => {
-                todo!();
-            }
-            OperationType::End => {
-                let prev_ip = stack.pop().unwrap();
-                if program[prev_ip].op_type == OperationType::If || program[prev_ip].op_type == OperationType::Else {
-                    program[prev_ip].jump = ip as i32;
-                }
-                if program[prev_ip].op_type == OperationType::Do {
-                    program[ip].jump = program[prev_ip].jump as i32;
-                    program[prev_ip].jump = ( ip + 1) as i32;
-                }
-            }
-            _ => {} // ignore other instructions
-        }
-    }
-}
+//     // process block instructions
+//     for ip in 0..program.len() {
+//         let op_type = program[ip].op_type;
+//         match op_type  {
+//             OperationType::If => stack.push(ip),
+//             OperationType::While => stack.push(ip),
+//             OperationType::Do => {
+//                 let while_ip = stack.pop().unwrap();
+//                 assert!(program[while_ip].op_type == OperationType::While);
+//                 program[ip].jump = while_ip as i32;
+//                 stack.push(ip);
+//             }
+//             OperationType::Else => {
+//                 let if_ip = stack.pop().unwrap();
+//                 assert!(program[if_ip].op_type == OperationType::If);
+//                 program[if_ip].jump = (ip + 1) as i32; 
+//                 stack.push(ip);
+//             }
+//             OperationType::Macro => {
+//                 todo!();
+//             }
+//             OperationType::End => {
+//                 let prev_ip = stack.pop().unwrap();
+//                 if program[prev_ip].op_type == OperationType::If || program[prev_ip].op_type == OperationType::Else {
+//                     program[prev_ip].jump = ip as i32;
+//                 }
+//                 if program[prev_ip].op_type == OperationType::Do {
+//                     program[ip].jump = program[prev_ip].jump as i32;
+//                     program[prev_ip].jump = ( ip + 1) as i32;
+//                 }
+//             }
+//             _ => {} // ignore other instructions
+//         }
+//     }
+// }

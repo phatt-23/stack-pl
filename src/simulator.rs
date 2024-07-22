@@ -256,6 +256,9 @@ pub fn simulate_program(program: &Vec<Operation>) {
             (OperationType::Syscall6, OperationValue::Nothing) => {
                 todo!();
             }
+            (OperationType::Macro, _) => {
+                println!("refactor operation types and values together you fuck");
+            }
             (op_type, op_value) => panic!("Unexpected OperationType and OperationValue combination: type: {:?}, value: {:?}", op_type, op_value)
         }
     }
