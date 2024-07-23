@@ -2,6 +2,7 @@ use core::panic;
 use std::fs::File;
 use std::io::{self, BufRead};
 use crate::token::Token;
+use crate::location::Location;
 
 pub fn lex_file_to_tokens(file: &str) -> Result<Vec<Token>, io::Error> {
     // println!("[INFO]: reading the program from '{}'", file);
@@ -24,28 +25,49 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
     let mut tokens: Vec<Token> = Vec::new();
     
     while col < line.len() {
-        let tok: Token;
-        if line.as_bytes()[col] == b'"' { // Parsing String literal
+        let loc = Location::new(&file.to_string(), row, col);
+        let bline = line.as_bytes();
+        if bline[col] == b'"' { // Parsing String Literal
             col_end = find_col(&line, col + 1, |x| x == b'"');
-            assert!(line.as_bytes()[col] == b'"');
-            assert!(line.as_bytes()[col_end] == b'"');
+            assert!(bline[col] == b'"');
+            assert!(bline[col_end] == b'"');
 
-            let value = &line[(col + 1)..=(col_end - 1)].to_string();
-            tok = Token::new_string(value, &file.to_string(), row, col);
+            let value = &line[(col + 1)..col_end].to_string();
+            tokens.push(Token::new_string(value, &loc));
 
             col = find_col(&line, col_end + 1, |x| x != b' ');
-        } else {
+        } else if bline[col] == b'\'' { // Parse Char
+            col_end = find_col(&line, col + 1, |x| x == b'\'');
+            assert!(bline[col] == b'\'');
+            assert!(*bline.get(col_end).unwrap_or_else(|| panic!("[ERROR]: {} Char must end with a tick (') right after the char itself", &loc)) == b'\'');
+
+            let value = &line[(col + 1)..(col_end)].to_string();
+
+            match value.as_str() {
+                "\\n" => tokens.push(Token::new_char('\n', &loc)),
+                "\\t" => tokens.push(Token::new_char('\t', &loc)),
+                "\\r" => tokens.push(Token::new_char('\r', &loc)),
+                _ if value.len() > 1 => panic!("[ERROR]: {} '{value}' is an invalid Char type, must only be single character", &loc),
+                s => {
+                    let c = s.chars().nth(0).unwrap();
+                    tokens.push(Token::new_char(c, &loc));
+                }
+            }
+
+            col = find_col(&line, col_end + 1, |x| x != b' ');
+        } else { // Parse Everything Else
             col_end = find_col(&line, col, |x| x == b' ');
 
             let word = &line[col..col_end]; 
-            tok = match word.parse::<i32>() {
-                Ok(v)  => Token::new_integer(v, &file.to_string(), row, col),
-                Err(_) => Token::new_word(&word.to_string(), &file.to_string(), row, col),
+            let tok = match word.parse::<i32>() {
+                Ok(v)  => Token::new_integer(v, &loc),
+                Err(_) => Token::new_word(&word.to_string(), &loc),
             };
+            tokens.push(tok);
             
             col = find_col(&line, col_end, |x| x != b' ');
         }
-        tokens.push(tok);
+        
     }
 
     return tokens;

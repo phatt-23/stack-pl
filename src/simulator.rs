@@ -18,6 +18,10 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 stack.push(*value);
                 ip += 1;
             }
+            OperationKind::PushChar(value) => {
+                stack.push(*value as i32);
+                ip += 1;
+            }
             OperationKind::PushStr(value) => {
                 stack.push(value.len() as i32);                 // push the count of u8 chars
                 stack.push(string_space_counter as i32);        // push the start address

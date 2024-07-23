@@ -6,6 +6,7 @@ pub enum OperationKind {
     // PushTypes
     PushInt(i32),
     PushStr(String),
+    PushChar(char),
     // Stack
     Duplicate,
     Duplicate2,

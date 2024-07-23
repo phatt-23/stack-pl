@@ -5,6 +5,7 @@ pub enum TokenKind {
     Word(String),
     Integer(i32),
     String(String),
+    Char(char),
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -14,24 +15,30 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new_integer(value: i32, file: &String, row: usize, col: usize) -> Self {
+    pub fn new_integer(value: i32, loc: &Location) -> Self {
         Self { 
-            loc: Location::new(file, row, col),
+            loc: loc.clone(),
             kind: TokenKind::Integer(value), 
         }
     }
-    pub fn new_word(value: &String, file: &String, row: usize, col: usize) -> Self {
+    pub fn new_word(value: &String, loc: &Location) -> Self {
         Self { 
-            loc: Location::new(file, row, col),
+            loc: loc.clone(),
             kind: TokenKind::Word(value.to_string()), 
         }
     }
-    pub fn new_string(value: &String, file: &String, row: usize, col: usize) -> Self {
+    pub fn new_char(value: char, loc: &Location) -> Self {
+        Self { 
+            loc: loc.clone(),
+            kind: TokenKind::Char(value), 
+        }
+    }
+    pub fn new_string(value: &String, loc: &Location) -> Self {
         let value = value.replace("\\n", "\n")
                          .replace("\\t", "\t")
                          .replace("\\r", "\r");
         Self { 
-            loc: Location::new(file, row, col),
+            loc: loc.clone(),
             kind: TokenKind::String(value), 
         }
     }

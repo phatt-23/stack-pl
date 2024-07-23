@@ -19,9 +19,8 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
     let mut operations: Vec<Operation> = Vec::new();
     let mut stack: Vec<usize> = Vec::new();
     let mut macros: HashMap<String, Macro> = HashMap::new();
-    let mut address_counter: usize = 0;
+    let mut addr_counter: usize = 0;
 
-    let mut ip: usize = 0;
     while tokens.len() > 0 {
         let token = tokens.pop().unwrap();
 
@@ -32,6 +31,9 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
             }
             TokenKind::String(value) => {
                 Operation::new(OperationKind::PushStr(value.clone()), token.loc)
+            }
+            TokenKind::Char(value) => {
+                Operation::new(OperationKind::PushChar(value.clone()), token.loc)
             }
             TokenKind::Word(value) => {
                 if let Some(op_kind) = OperationKind::from_str(value) {
@@ -51,30 +53,32 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
 
         // crossreference block operations and handle preprocessor
         match &mut op.kind {
-            OperationKind::If(_) => stack.push(ip),
-            OperationKind::While => stack.push(ip),
+            OperationKind::If(_) => stack.push(addr_counter),
+            OperationKind::While => stack.push(addr_counter),
             OperationKind::Do(do_jump) => {
-                let while_ip = stack.pop().unwrap();
-                assert!(operations[while_ip].kind == OperationKind::While);
-                *do_jump = while_ip as i32;
-                stack.push(ip);
+                let while_addr = stack.pop().unwrap();
+                if operations[while_addr].kind != OperationKind::While {
+                    panic!("[ERROR]: {} {:?} found `do` but not `while`, intead found {:?}", &op.loc, &op.kind, operations[while_addr]);
+                }
+                *do_jump = while_addr as i32;
+                stack.push(addr_counter);
             }
             OperationKind::Else(_) => {
-                let if_ip = stack.pop().unwrap();
-                assert!(matches!(operations[if_ip].kind, OperationKind::If(_)));
-                if let OperationKind::If(ref mut if_jump) = operations[if_ip].kind {
-                    *if_jump = (ip + 1) as i32; 
+                let if_addr = stack.pop().unwrap();
+                assert!(matches!(operations[if_addr].kind, OperationKind::If(_)));
+                if let OperationKind::If(ref mut if_jump) = operations[if_addr].kind {
+                    *if_jump = (addr_counter + 1) as i32; 
                 }
-                stack.push(ip);
+                stack.push(addr_counter);
             }
             OperationKind::End(end_jump) => {
-                let prev_ip = stack.pop().unwrap();
-                match &mut operations[prev_ip].kind {
-                    OperationKind::If(if_jump) => *if_jump = ip as i32,
-                    OperationKind::Else(else_jump) => *else_jump = ip as i32,
+                let prev_addr = stack.pop().unwrap();
+                match &mut operations[prev_addr].kind {
+                    OperationKind::If(if_jump) => *if_jump = addr_counter as i32,
+                    OperationKind::Else(else_jump) => *else_jump = addr_counter as i32,
                     OperationKind::Do(do_jump) => {
                         *end_jump = *do_jump as i32;
-                        *do_jump = (ip + 1) as i32;
+                        *do_jump = (addr_counter + 1) as i32;
                     }
                     _ => panic!("[ERROR] `end` keyword found with no preceding block operations")
                 }
@@ -93,6 +97,7 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
                     }
                     TokenKind::Integer(v) => panic!("[ERROR]: {} {v:?} - Expected `macro` identifier `Word` but found `Integer`", &op.loc),
                     TokenKind::String(v) => panic!("[ERROR]: {} {v:?} - Expected `macro` identifier `Word` but found `String`", &op.loc),
+                    TokenKind::Char(v) => unreachable!("[ERROR]: {} {v:?} - Expected `macro` identifier `Word` but found `Char`", &op.loc),
                 };
                 macros.insert(name.clone(), Macro { loc: op.loc.clone(), name: name.clone(), tokens: Vec::new() });
                 while let Some(tok) = tokens.pop() {
@@ -137,6 +142,7 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
                     }
                     TokenKind::Integer(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Integer`", &op.loc),
                     TokenKind::Word(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Word`", &op.loc),
+                    TokenKind::Char(v) => unreachable!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Char`", &op.loc),
                 }
             }
             _ => {}
@@ -144,12 +150,10 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
         
         // ignore preprocessor operations
         if !matches!(op.kind, OperationKind::Macro | OperationKind::Include(_)) {
-            op.address = address_counter;
+            op.address = addr_counter;
             operations.push(op);
-            address_counter += 1;
+            addr_counter += 1;
         }
-
-        ip += 1;
     }
     
     

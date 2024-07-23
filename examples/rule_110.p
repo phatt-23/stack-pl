@@ -1,22 +1,24 @@
+macro N 100 end
+
 mem 98 + 1 .
 
-0 while dup 98 < do
-    0 while dup 100 < do
+0 while dup N 2 - < do
+    0 while dup N < do
         dup mem + , if
-            dup mem + 100 + 42 .
+            dup mem + N + '*' .
         else
-            dup mem + 100 + 32 .
+            dup mem + N + ' ' .
         end
         1 +
     end
-    mem + 100 + 10 .
-    101 mem 100 + 1 1 syscall3
+    mem + N + 10 .
+    N 1 + mem N + 1 1 syscall3
 
     mem , 1 <<
     mem 1 + , 
     |
 
-    1 while dup 98 < do
+    1 while dup N 2 - < do
         swap 1 << 7 &
         over mem + 1 + , |
         dup2 110 swap >> 1 &
