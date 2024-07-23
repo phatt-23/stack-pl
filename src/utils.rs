@@ -1,12 +1,14 @@
 use std::{fs, io::Write, process::Command};
+use crate::location::Location;
+use crate::location::goto_loc;
 
-const LANGUAGE_SUFFIX: &'static str = ".p";
+const LANGUAGE_SUFFIX: &str = ".p";
 
 pub fn print_usage() {
     let args: Vec<String> = std::env::args().collect();
     println!("[ERROR]: Invalid command: {}", args.join(" "));
     println!("[USAGE]: <COMPILER> <FLAGS> <ARGUMENT>");
-    println!("     COMPILER: {}", args.get(0).unwrap());
+    println!("     COMPILER: {}", args.first().unwrap());
     println!("        FILES: source files must end with {:?} suffix", LANGUAGE_SUFFIX);
     println!("        FLAGS: -s | --sim                        - interprets the code, doesnt create executable");
     println!("               -c | --com                        - generates assembly code, creates executable");
@@ -72,6 +74,7 @@ impl CommandLineArgs {
     const OBJ_FILENAME: &'static str = "program.o";
     const OUT_FILENAME: &'static str = "program.out";
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         src_files: Vec<&String>,
         asm_file: Option<&String>,
@@ -114,12 +117,12 @@ impl Default for CommandLineArgs {
     }
 }
 
-type ErrorMessageAndLocation = (&'static str, u32, String);
+type ErrorMessageAndLocation = (Location, String);
 
-fn handle_flag_with_file_arg(flag: &str, file: &'static str, line: u32, arg: Option<&String>) -> Result<String, ErrorMessageAndLocation>  {
-    let file_arg = arg.unwrap_or_else(|| panic!("[ERROR]: {file}:{line}: ({flag}) no filepath provided"));
-    if file_arg.starts_with("-") {
-        Err((file, line, format!("[ERROR]: ({flag}) invalid filepath: {file_arg}")))
+fn handle_flag_with_file_arg(flag: &str, loc: Location, arg: Option<&String>) -> Result<String, ErrorMessageAndLocation>  {
+    let file_arg = arg.unwrap_or_else(|| panic!("[ERROR]: {loc} ({flag}) no filepath provided"));
+    if file_arg.starts_with('-') {
+        Err((loc, format!("[ERROR]: ({flag}) invalid filepath: {file_arg}")))
     } else {
         Ok(file_arg.to_string())
     }
@@ -140,34 +143,34 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
                     "--com" => cl_args.push(CommandLineArgKind::Compilation),
                     "--run" => cl_args.push(CommandLineArgKind::RunCompiledProgram),
                     "--asm" => {
-                        let file = handle_flag_with_file_arg("--asm", file!(), line!(), args.get(index + 1))?;
+                        let file = handle_flag_with_file_arg("--asm", goto_loc!(), args.get(index + 1))?;
                         cl_args.push(CommandLineArgKind::Assembly(file));
                         index += 1;
                     }
                     "--out" => {
-                        let file = handle_flag_with_file_arg("--out", file!(), line!(), args.get(index + 1))?;
+                        let file = handle_flag_with_file_arg("--out", goto_loc!(), args.get(index + 1))?;
                         cl_args.push(CommandLineArgKind::Output(file.clone()));
                         index += 1;
                     }
                     e => {
                         print_usage();
-                        return Err((file!(), line!(), format!("{:?} unknown full argument starting with '--'", e)));
+                        return Err((goto_loc!(), format!("{:?} unknown full argument starting with '--'", e)));
                     }
                 }
             }
             // these must be handled on their own, cant be a part of multiple flags, they take in parameters
             "-a" => {
-                let file = handle_flag_with_file_arg("-a", file!(), line!(), args.get(index + 1))?;
+                let file = handle_flag_with_file_arg("-a", goto_loc!(), args.get(index + 1))?;
                 cl_args.push(CommandLineArgKind::Assembly(file.clone()));
                 index += 1;
             }
             "-o" => {
-                let file = handle_flag_with_file_arg("-o", file!(), line!(), args.get(index + 1))?;
+                let file = handle_flag_with_file_arg("-o", goto_loc!(), args.get(index + 1))?;
                 cl_args.push(CommandLineArgKind::Output(file.clone()));
                 index += 1;
             }
             // these flags can be merged in one, can be part of multiple flags, dont take any parameters
-            s if s.starts_with("-") => {
+            s if s.starts_with('-') => {
                 let chars: Vec<char> = s[1..].chars().collect();
                 for c in chars {
                     match c {
@@ -175,33 +178,33 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
                         's' => cl_args.push(CommandLineArgKind::Simulation),
                         'c' => cl_args.push(CommandLineArgKind::Compilation),
                         'r' => cl_args.push(CommandLineArgKind::RunCompiledProgram),
-                        'a' => return Err((file!(), line!(), format!("short flag 'a' must be used independently"))),
-                        'o' => return Err((file!(), line!(), format!("short flag 'o' must be used independently"))),
+                        'a' => return Err((goto_loc!(), "short flag 'a' must be used independently".to_string())),
+                        'o' => return Err((goto_loc!(), "short flag 'o' must be used independently".to_string())),
                         e => {
                             print_usage();
-                            return Err((file!(), line!(), format!("{:?} unknown short argument starting with '-'", e)));
+                            return Err((goto_loc!(), format!("{:?} unknown short argument starting with '-'", e)));
                         }
                     }
                 }
             }
             e => {
                 print_usage();
-                return Err((file!(), line!(), format!("Unknown compiler argument {:?}, not a source file nor argument!", e)));
+                return Err((goto_loc!(), format!("Unknown compiler argument {:?}, not a source file nor argument!", e)));
             }
         }
 
         index += 1;
     }
 
-    let com_flag = if cl_args.iter().any(|arg| matches!(arg, CommandLineArgKind::Compilation)) {true} else {false};
-    let sim_flag = if cl_args.iter().any(|arg| matches!(arg, CommandLineArgKind::Simulation)) {true} else {false};
-    // if !(com_flag || sim_flag) { Err((file!(), line!(), format!("provide (-s, --sim) for simulation or (-c, --com) for compilation"))) }
+    let com_flag = cl_args.iter().any(|arg| matches!(arg, CommandLineArgKind::Compilation)); 
+    let sim_flag = cl_args.iter().any(|arg| matches!(arg, CommandLineArgKind::Simulation)); 
+    // if !(com_flag || sim_flag) { Err((goto_loc!(), format!("provide (-s, --sim) for simulation or (-c, --com) for compilation"))) }
     
     let src_files: Vec<&String> = cl_args.iter().filter_map(|arg| { if let CommandLineArgKind::File(file_name) = arg { Some(file_name) } else { None } }).collect();
 
     
-    if src_files.len() < 1 {
-        return Err((file!(), line!(), format!("No a source file was provided")));
+    if src_files.is_empty() {
+        return Err((goto_loc!(), "No a source file was provided".to_string()));
     }
 
 
@@ -218,12 +221,12 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
     
     let run_com_flag = if cl_args.contains(&CommandLineArgKind::RunCompiledProgram) {
         if !com_flag {
-            return Err((file!(), line!(), format!("(-r, --run) flags must be ran with compilation mode (-c, --com)")));
+            return Err((goto_loc!(), "(-r, --run) flags must be ran with compilation mode (-c, --com)".to_string()));
         }
         true
     } else {false};
 
-    let debug_flag = if cl_args.contains(&CommandLineArgKind::Debug) {true} else {false};
+    let debug_flag = cl_args.contains(&CommandLineArgKind::Debug); 
 
     let asm_file: Option<&String> = asm_files.first();
     let out_file: Option<&String> = out_files.first();
@@ -249,39 +252,25 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
     use std::path::{PathBuf, Path};
     
     let callers_dir = std::env::current_dir().unwrap();
-    // println!("[INFO]: You are in directory: {:?}", callers_dir.display());
 
     let path_buf = PathBuf::from(&cl_args.asm_file);
     let asm_obj_dir = path_buf.parent().unwrap(); 
 
     let path_buf = PathBuf::from(&cl_args.out_file);
     let out_dir = path_buf.parent().unwrap();
-
-    // println!("[INFO]: ASM Obj Directory: {:?}", asm_obj_dir);
-    // println!("[INFO]: Out Directory: {:?}", out_dir);
-
-    // for (i, e) in std::fs::read_dir(callers_dir).unwrap().enumerate() {
-    //     let e = e.unwrap();
-    //     println!("[INFO]: [{i:>3}]: {:<10}", &e.path().display());
-    // }
     
     let mut dirs_to_check: Vec<_> = Vec::new();
-    let mut ancestors = out_dir.ancestors();
-    while let Some(p) = ancestors.next() {
-        // println!("[INFO]: Ancestors: {:?}", p);
+    for p in out_dir.ancestors() {
         dirs_to_check.push(p);    
     }
 
-    let mut ancestors = asm_obj_dir.ancestors();
-    while let Some(p) = ancestors.next() {
-        // println!("[INFO]: Ancestors: {:?}", p);
+    for p in asm_obj_dir.ancestors() {
         dirs_to_check.push(p);    
     }
 
     dirs_to_check.sort();
     dirs_to_check.dedup();
 
-    // println!("[INFO]: Directories to check for whether they exist: {:?}", dirs_to_check);
     for d in dirs_to_check {
         let path = format!("{}/{}", &callers_dir.display(), &d.display());
         if !Path::new(&path).exists() {

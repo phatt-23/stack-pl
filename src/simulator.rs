@@ -4,7 +4,7 @@ const SILENT: bool = true;
 const STRING_SPACE: usize =  1_024;
 const MEMORY_SPACE: usize = 64_000;
 
-pub fn simulate_program(program: &Vec<Operation>) {
+pub fn simulate_program(program: Vec<Operation>) {
     let mut string_space_counter: usize = 0;
 
     let mut stack: Vec<i32> = Vec::new();
@@ -93,13 +93,13 @@ pub fn simulate_program(program: &Vec<Operation>) {
             OperationKind::Multiply => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <multiply> '*' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <multiply> '*' expects 2 operands (second)", op.loc));
-                stack.push((a * b) as i32);
+                stack.push(a * b);
                 ip += 1;
             }
             OperationKind::Divide => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <divide> '/' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <divide> '/' expects 2 operands (second)", op.loc));
-                stack.push((a / b) as i32);
+                stack.push(a / b);
                 ip += 1;
             }
             OperationKind::Modulo => {
@@ -160,7 +160,7 @@ pub fn simulate_program(program: &Vec<Operation>) {
             }
             OperationKind::If(jump) => {
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <if-statement> 'if' expects 1 operand", op.loc)) != 0;
-                if a == false {
+                if !a {
                     ip = *jump as usize;
                     continue;
                 }
@@ -172,7 +172,7 @@ pub fn simulate_program(program: &Vec<Operation>) {
             }
             OperationKind::Do(jump) => {
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <do-statement> 'do' expects 1 operand", op.loc)) != 0;
-                if a == false {
+                if !a {
                     ip = *jump as usize;
                     continue;
                 }
@@ -191,30 +191,30 @@ pub fn simulate_program(program: &Vec<Operation>) {
             OperationKind::BitAnd => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <bit-and> '&' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <bit-and> '&' expects 2 operands (second)", op.loc));
-                stack.push((a & b) as i32);
+                stack.push(a & b);
                 ip += 1;
             }
             OperationKind::BitOr => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
-                stack.push((a | b) as i32);
+                stack.push(a | b);
                 ip += 1;
             }
             OperationKind::ShiftRight => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
-                stack.push((a >> b) as i32);
+                stack.push(a >> b);
                 ip += 1;
             }
             OperationKind::ShiftLeft => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (first)", op.loc));
                 let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <modulo> '%' expects 2 operands (second)", op.loc));
-                stack.push((a << b) as i32);
+                stack.push(a << b);
                 ip += 1;
             }
         /* -------------------------------- // Memory ------------------------------- */
             OperationKind::MemoryPush => {
-                stack.push(0 + STRING_SPACE as i32); 
+                stack.push(STRING_SPACE as i32); 
                 ip += 1;
             }
             OperationKind::MemoryLoad => {

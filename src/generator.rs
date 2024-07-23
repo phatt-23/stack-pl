@@ -36,7 +36,7 @@ pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> Res
             .collect();
         let bytes = format!("{:?}", b)
             .replace(|c| c == '[' || c == ']' || c == '"', "");
-        writeln!(file, "    str_{index}: db {bytes}")?;
+        writeln!(file, "    STRING_{index}: db {bytes}")?;
     }
 
     writeln!(file, "    ;;;")?;
@@ -72,7 +72,7 @@ fn generate_operation(
             let size = value.len();
             writeln!(file, ";; push str")?;
             writeln!(file, "\t    push {}", size)?;
-            writeln!(file, "\t    push str_{}", strings.len())?;
+            writeln!(file, "\t    push STRING_{}", strings.len())?;
             strings.push(value.to_string());
             unsafe {
                 STRING_SPACE_COUNTER += size;

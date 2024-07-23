@@ -8,22 +8,22 @@ mod location;
 mod analyser;
 
 fn main() -> Result<(), std::io::Error> {
-    let cl_args = utils::process_command_line_args().unwrap_or_else(|e| panic!("[ERROR] {}:{}: {}", e.0, e.1, e.2));
+    let cl_args = utils::process_command_line_args().unwrap_or_else(|e| panic!("[ERROR] {} {}", e.0, e.1));
 
-    let tokens = lexer::lex_file_to_tokens(&cl_args.src_files.first().unwrap())?; 
+    let tokens = lexer::lex_file_to_tokens(cl_args.src_files.first().unwrap())?; 
     if cl_args.dbg_flag {
         tokens.iter().for_each(|t| println!("[INFO token]: {t}"));
     }
 
-    let operations = analyser::compile_tokens_to_operations(&tokens)?;
+    let operations = analyser::compile_tokens_to_operations(tokens)?;
     if cl_args.dbg_flag {
         operations.iter().for_each(|o| println!("[INFO op]: {o}"));
     }
     
-    generator::generate_linux_nasm_x86_64(&operations, &cl_args.asm_file.clone().as_str() )?;
+    generator::generate_linux_nasm_x86_64(&operations, cl_args.asm_file.clone().as_str())?;
     
     if cl_args.sim_flag {
-        simulator::simulate_program(&operations);
+        simulator::simulate_program(operations);
     }
 
     if cl_args.com_flag {

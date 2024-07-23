@@ -35,13 +35,14 @@ pub enum OperationKind {
     GreaterEqual,
     LessEqual,
     Not,
-    // Block
+    // Keyword
     While,
     Macro,
     If(i32),
     Else(i32),
     Do(i32),
     End(i32),
+    Include(String),
     // Memory
     MemoryPush,
     MemoryLoad,
@@ -53,8 +54,6 @@ pub enum OperationKind {
     Syscall4,
     Syscall5,
     Syscall6,
-    // 
-    Include(String)
 }
 
 

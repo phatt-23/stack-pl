@@ -25,7 +25,7 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
     let mut tokens: Vec<Token> = Vec::new();
     
     while col < line.len() {
-        let loc = Location::new(&file.to_string(), row, col);
+        let loc = Location::new(file, row, col);
         let bline = line.as_bytes();
         if bline[col] == b'"' { // Parsing String Literal
             col_end = find_col(&line, col + 1, |x| x == b'"');
@@ -49,7 +49,7 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
                 "\\r" => tokens.push(Token::new_char('\r', &loc)),
                 _ if value.len() > 1 => panic!("[ERROR]: {} '{value}' is an invalid Char type, must only be single character", &loc),
                 s => {
-                    let c = s.chars().nth(0).unwrap();
+                    let c = s.chars().next().unwrap();
                     tokens.push(Token::new_char(c, &loc));
                 }
             }
@@ -70,7 +70,7 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
         
     }
 
-    return tokens;
+    tokens
 }
 
 fn read_lines<P>(filename: P) 

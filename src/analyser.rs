@@ -12,7 +12,7 @@ struct Macro {
     pub tokens: Vec<Token>,
 }
 
-pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation>, io::Error> {
+pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>, io::Error> {
     let mut tokens = tokens.clone();
     tokens.reverse();
     
@@ -21,19 +21,17 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
     let mut macros: HashMap<String, Macro> = HashMap::new();
     let mut addr_counter: usize = 0;
 
-    while tokens.len() > 0 {
-        let token = tokens.pop().unwrap();
-
+    while let Some(token) = tokens.pop() {
         // compile token to operation
         let mut op = match &token.kind {
             TokenKind::Integer(value) => {
-                Operation::new(OperationKind::PushInt(value.clone()), token.loc)
+                Operation::new(OperationKind::PushInt(*value), token.loc)
             }
             TokenKind::String(value) => {
                 Operation::new(OperationKind::PushStr(value.clone()), token.loc)
             }
             TokenKind::Char(value) => {
-                Operation::new(OperationKind::PushChar(value.clone()), token.loc)
+                Operation::new(OperationKind::PushChar(*value), token.loc)
             }
             TokenKind::Word(value) => {
                 if let Some(op_kind) = OperationKind::from_str(value) {
@@ -77,20 +75,20 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
                     OperationKind::If(if_jump) => *if_jump = addr_counter as i32,
                     OperationKind::Else(else_jump) => *else_jump = addr_counter as i32,
                     OperationKind::Do(do_jump) => {
-                        *end_jump = *do_jump as i32;
+                        *end_jump = *do_jump;
                         *do_jump = (addr_counter + 1) as i32;
                     }
                     _ => panic!("[ERROR] `end` keyword found with no preceding block operations")
                 }
             }
             OperationKind::Macro => {
-                assert!(tokens.len() > 0, "macro must have a body and be closed by `end`");
+                assert!(!tokens.is_empty(), "macro must have a body and be closed by `end`");
                 let name = match tokens.pop().unwrap().kind {
                     TokenKind::Word(ref v) => {
                         if let Some(m) = macros.get(v) {
                             panic!("[ERROR]: {ol} Macro with identifier {v:?} already implemented at {ml} (can't use the same identifier for macros)", ol=&op.loc, ml=&m.loc);
                         }
-                        if let Some(op_type) = OperationKind::from_str(&v) {
+                        if let Some(op_type) = OperationKind::from_str(v) {
                             panic!("[ERROR]: {} Can't use a builtin keyword {v:?} standing for {op_type:?} as an identifier for `macro`", &op.loc);
                         }
                         v.clone()
@@ -129,7 +127,7 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
                         let inc_file_path = entries
                             .filter_map(|e| e.ok())
                             .find(|e| e.file_name().to_str().unwrap() == inc_file_name)
-                            .map(|e| ["./", &search_dir.as_str(), "/", e.file_name().to_str().unwrap()].concat())
+                            .map(|e| ["./", search_dir.as_str(), "/", e.file_name().to_str().unwrap()].concat())
                             .unwrap_or_else(|| panic!("[ERROR]: {} File {inc_file_name:?} not found in directory {search_dir:?}", &op.loc));
                             
                         match lexer::lex_file_to_tokens(&inc_file_path) {
@@ -155,7 +153,6 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation
             addr_counter += 1;
         }
     }
-    
     
     Ok(operations)
 }

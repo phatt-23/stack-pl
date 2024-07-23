@@ -33,7 +33,7 @@ impl Token {
             kind: TokenKind::Char(value), 
         }
     }
-    pub fn new_string(value: &String, loc: &Location) -> Self {
+    pub fn new_string(value: &str, loc: &Location) -> Self {
         let value = value.replace("\\n", "\n")
                          .replace("\\t", "\t")
                          .replace("\\r", "\r");

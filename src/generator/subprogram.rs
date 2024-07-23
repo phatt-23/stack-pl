@@ -1,7 +1,7 @@
 use std::io::Write;
 
-pub const SUBPROGRAM_IDENTIFIER_PRINT_INTEGER: &'static str = "___print_integer";
-pub const SUBPROGRAM_IDENTIFIER_PRINT_CHARACTER: &'static str = "___print_character";
+pub const SUBPROGRAM_IDENTIFIER_PRINT_INTEGER: &str = "___print_integer";
+pub const SUBPROGRAM_IDENTIFIER_PRINT_CHARACTER: &str = "___print_character";
 
 pub fn write_print_num(file: &mut std::fs::File) -> Result<i32, std::io::Error> {
     writeln!(file, "section .text")?;

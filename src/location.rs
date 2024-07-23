@@ -5,10 +5,24 @@ pub struct Location {
     pub col: usize,
 }
 
+#[macro_export]
+macro_rules! goto_loc {
+    () => {
+        Location {
+            file: file!().to_string(), 
+            row: line!() as usize, 
+            col: column!() as usize
+        }
+    }
+}
+
+pub(crate) use goto_loc;
+
+
 impl Location {
-    pub fn new(file: &String, row: usize, col: usize) -> Self {
+    pub fn new(file: &str, row: usize, col: usize) -> Self {
         Self {
-            file: file.clone(),
+            file: file.to_string(),
             row: row + 1, 
             col: col + 1
         }
