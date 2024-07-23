@@ -1,8 +1,8 @@
 
-
+macro A 1234 end
 
 1 3 < if
-    1234 1234 = if
+    A A = if
         12 23 > if
             12345 dump
         end

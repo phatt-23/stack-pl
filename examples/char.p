@@ -1,9 +1,13 @@
 
-'\n' dump
-10 dump
+'*' print
+44 print
+44 dump
 
-'*' dump
-42 dump
+// '\n' print
+// 10 print
+// '\n' dump
 
-'#' dump
-35 dump
+
+// '#' print
+// 35 print
+// 35 dump

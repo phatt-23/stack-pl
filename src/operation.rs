@@ -15,6 +15,7 @@ pub enum OperationKind {
     Over,
     // IO
     Dump,
+    PrintChar,
     // Arithmetic
     Add,
     Subtract,
@@ -89,12 +90,14 @@ impl OperationKind {
     pub fn from_str(s: &str) -> Option<Self> {
         return HashMap::from([
             // stack
-            ("dump",    OperationKind::Dump),
             ("dup",     OperationKind::Duplicate),
             ("dup2",    OperationKind::Duplicate2),
             ("drop",    OperationKind::Drop),
             ("swap",    OperationKind::Swap),
             ("over",    OperationKind::Over),
+            // io
+            ("dump",    OperationKind::Dump),
+            ("print",   OperationKind::PrintChar),
             // arithmetic
             ("+",       OperationKind::Add),
             ("add",     OperationKind::Add),

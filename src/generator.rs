@@ -1,3 +1,5 @@
+mod subprogram;
+
 use std::fs::File;
 use std::io::{self, Write};
 use crate::operation::{Operation, OperationKind};
@@ -6,8 +8,8 @@ const STRING_SPACE: usize = 1_024;
 const MEMORY_SPACE: usize = 64_000;
 static mut STRING_SPACE_COUNTER: usize = 0;
 
-pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> io::Result<i32> {
-    let mut file = File::create(output).expect("creation failed");
+pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> Result<i32, std::io::Error> {
+    let mut file = File::create(output).unwrap_or_else(|e| panic!("[ERROR]: Assembly file {output:?} creation failed: {e}"));
     writeln!(file, "bits 64")?;
     writeln!(file, "    ;;;")?;
     writeln!(file, "section .text")?;
@@ -41,67 +43,10 @@ pub fn generate_linux_nasm_x86_64(program: &Vec<Operation>, output: &str) -> io:
     writeln!(file, "section .bss")?;
     writeln!(file, "    MEMORY: resb {}", MEMORY_SPACE + STRING_SPACE)?;
     writeln!(file, "    ;;;")?;
-    writeln!(file, "section .text")?;
-    writeln!(file, "    global print_num")?;
-    writeln!(file, "    ;;;")?;
-    writeln!(file, "    print_num:")?;
-    writeln!(file, "        enter 0, 0")?;
-    writeln!(file, "            cmp  rdi, 0")?;
-    writeln!(file, "            mov  rcx, 1")?;
-    writeln!(file, "            je   .done1")?;
-    writeln!(file, "            jge  .positive")?;
-    writeln!(file, "            neg  rdi")?;
-    writeln!(file, "            push rdi")?;
-    writeln!(file, "            push '-'")?;
-    writeln!(file, "            mov  rsi, rsp")?;
-    writeln!(file, "            mov  rdx, 1")?;
-    writeln!(file, "            mov  rax, 1")?;
-    writeln!(file, "            mov  rdi, 1")?;
-    writeln!(file, "            syscall")?;
-    writeln!(file, "            pop  rdi")?; // dropping '-'
-    writeln!(file, "            pop  rdi")?;
-    writeln!(file, "        .positive:")?;
-    writeln!(file, "            mov rax, rdi")?;
-    writeln!(file, "            mov rbx, 10")?;
-    writeln!(file, "            xor rcx, rcx")?;
-    writeln!(file, "        .loop1:")?;
-    writeln!(file, "            cmp rax, 0")?;
-    writeln!(file, "            jle .done1")?;
-    writeln!(file, "            cdq")?;
-    writeln!(file, "            idiv rbx")?;
-    writeln!(file, "            inc rcx")?;
-    writeln!(file, "            jmp .loop1")?;
-    writeln!(file, "        .done1:")?;
-    writeln!(file, "            inc rcx")?;
-    writeln!(file, "            mov r8, rcx")?;
-    writeln!(file, "            sub rsp, rcx")?;
-    writeln!(file, "            dec rcx")?;
-    writeln!(file, "            mov byte [rsp + rcx], 0x0A")?;
-    writeln!(file, "            dec rcx")?;
-    writeln!(file, "            cmp rdi, 0")?;
-    writeln!(file, "            jnz .skip")?;
-    writeln!(file, "            mov byte [rsp + rcx], '0'")?;
-    writeln!(file, "            jmp .done2")?;
-    writeln!(file, "        .skip:")?;
-    writeln!(file, "            mov rax, rdi")?;
-    writeln!(file, "        .loop2:")?;
-    writeln!(file, "            cmp rcx, 0")?;
-    writeln!(file, "            jl  .done2")?;
-    writeln!(file, "            cdq")?;
-    writeln!(file, "            idiv rbx")?;
-    writeln!(file, "            add  rdx, '0'")?;
-    writeln!(file, "            mov  byte [rsp + rcx], dl")?;
-    writeln!(file, "            dec  rcx")?;
-    writeln!(file, "            jmp  .loop2")?;
-    writeln!(file, "        .done2:")?;
-    writeln!(file, "            mov  rsi, rsp")?;
-    writeln!(file, "            mov  rdx, r8")?;
-    writeln!(file, "            mov  rax, 1")?;
-    writeln!(file, "            mov  rdi, 1")?;
-    writeln!(file, "            syscall")?;
-    writeln!(file, "        leave")?;
-    writeln!(file, "        ret")?;
-    writeln!(file, "    ;;; print_num")?;
+
+    subprogram::write_print_num(&mut file)?;
+    subprogram::write_print_char(&mut file)?;
+
     writeln!(file, " ")?;
 
     Ok(0)
@@ -134,12 +79,26 @@ fn generate_operation(
                 assert!(STRING_SPACE_COUNTER < STRING_SPACE, "[ERROR]: string space overflow");
             }
         }
-        /* -------------------------------- // Stack -------------------------------- */
+        /* ---------------------------------- // IO --------------------------------- */
         OperationKind::Dump => {
             writeln!(file, ";; dump")?;
             writeln!(file, "\t    pop rdi")?;
-            writeln!(file, "\t    call print_num")?;
+            writeln!(file, "\t    call {}", subprogram::SUBPROGRAM_IDENTIFIER_PRINT_INTEGER)?;
         }
+        OperationKind::PrintChar => {
+            writeln!(file, ";; printc")?;
+            writeln!(file, "\t    pop  rdi")?;
+            writeln!(file, "\t    call {}", subprogram::SUBPROGRAM_IDENTIFIER_PRINT_CHARACTER)?; // either call a subprogram or inline it will see whats better
+            // writeln!(file, "\t    mov  rax, 1")?;
+            // writeln!(file, "\t    mov  rdi, 1")?;
+            // writeln!(file, "\t    pop  r8")?;
+            // writeln!(file, "\t    or   r8, 0x0a00")?; // adding new line
+            // writeln!(file, "\t    push r8")?;
+            // writeln!(file, "\t    mov  rsi, rsp")?;
+            // writeln!(file, "\t    mov  rdx, 2")?;
+            // writeln!(file, "\t    syscall")?; 
+        }
+        /* -------------------------------- // Stack -------------------------------- */
         OperationKind::Drop => {
             writeln!(file, ";; drop")?;
             writeln!(file, "\t    pop rax")?;

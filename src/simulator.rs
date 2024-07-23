@@ -70,6 +70,13 @@ pub fn simulate_program(program: &Vec<Operation>) {
                 stack.push(a);
                 ip += 1;     
             }
+            /* ---------------------------------- // IO --------------------------------- */
+            OperationKind::PrintChar => {
+                let a = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <print> 'print' expects 1 operand (first)", op.loc));
+                stack.push(a);
+                println!("{}", u8::try_from(a).unwrap_or_else(|e| panic!("[ERROR]: 'print' may only be used with 'u8', instead {a} was provided: {e}")) as char);
+                ip += 1;     
+            }
         /* ------------------------------ // Arithmetic ----------------------------- */
             OperationKind::Add => {
                 let b = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} (Empty Stack) <plus> '+' expects 2 operands (first operand)", op.loc));
