@@ -1,4 +1,4 @@
-use core::panic;
+use std::{ self, fs, io::{self}, path::PathBuf };
 use std::collections::HashMap;
 
 use crate::lexer;
@@ -12,7 +12,7 @@ struct Macro {
     pub tokens: Vec<Token>,
 }
 
-pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
+pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Result<Vec<Operation>, io::Error> {
     let mut tokens = tokens.clone();
     tokens.reverse();
     
@@ -104,24 +104,41 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
                 }
                 let end = tokens.pop().unwrap_or_else(|| panic!("[ERROR]: {} Macro {name:?} No `end` was found for `macro` block", &op.loc));
                 assert!(matches!(&end.kind, TokenKind::Word(v) if v == "end"));
-                // operations.pop(); // removing the `Macro` from operations - it is redundant and should be discarded
             }
             OperationKind::Include(_) => {
-                let include_file = tokens.pop().unwrap();
-                match &include_file.kind {
-                    TokenKind::String(inc_file) => {
-                        match lexer::lex_file_to_tokens(inc_file) {
+                let include_token = tokens.pop().unwrap();
+                match &include_token.kind {
+                    TokenKind::String(include_file) => {
+                        let src_path = PathBuf::from(&op.loc.file);
+                        let inc_path = PathBuf::from(&include_file);
+                        
+                        let src_dir = src_path.parent().unwrap().to_str().unwrap();
+                        let inc_dir = inc_path.parent().unwrap().to_str().unwrap();
+                        let inc_file_name = inc_path.file_name().unwrap().to_str().unwrap();
+
+                        let search_dir = [src_dir, "/", inc_dir].concat();
+
+                        let entries = fs::read_dir(&search_dir)
+                            .unwrap_or_else(|e| panic!("[ERROR]: {} Directory {inc_dir:?} does not exist: {e}", &include_token.loc));
+
+                        let inc_file_path = entries
+                            .filter_map(|e| e.ok())
+                            .find(|e| e.file_name().to_str().unwrap() == inc_file_name)
+                            .map(|e| ["./", &search_dir.as_str(), "/", e.file_name().to_str().unwrap()].concat())
+                            .unwrap_or_else(|| panic!("[ERROR]: {} File {inc_file_name:?} not found in directory {search_dir:?}", &op.loc));
+                            
+                        match lexer::lex_file_to_tokens(&inc_file_path) {
                             Ok(ref mut include_tokens) => {
                                 include_tokens.reverse();
                                 tokens.append(include_tokens);
-                            } 
-                            Err(e) => panic!("[ERROR]: {} Could not include file {include_file:?}, Error: {e}", &op.loc),
+                            }
+                            Err(e) => panic!("[ERROR]: {} Could not include file {include_file:?}, Error: {e}", &include_token.loc),
                         }
                     }
                     TokenKind::Integer(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Integer`", &op.loc),
                     TokenKind::Word(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Word`", &op.loc),
                 }
-        }
+            }
             _ => {}
         }
         
@@ -136,6 +153,6 @@ pub fn compile_tokens_to_operations(tokens: &Vec<Token>) -> Vec<Operation> {
     }
     
     
-    return operations;
+    Ok(operations)
 }
 

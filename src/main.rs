@@ -15,7 +15,7 @@ fn main() -> Result<(), std::io::Error> {
         tokens.iter().for_each(|t| println!("[INFO token]: {t}"));
     }
 
-    let operations = analyser::compile_tokens_to_operations(&tokens);
+    let operations = analyser::compile_tokens_to_operations(&tokens)?;
     if debug {
         operations.iter().for_each(|o| println!("[INFO op]: {o}"));
     }

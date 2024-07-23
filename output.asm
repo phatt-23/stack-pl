@@ -3,7 +3,7 @@ bits 64
 _start:
 address_0:
     ;; push str
-    push 13
+    push 21
     push str_0
 address_1:
     ;; push op
@@ -18,31 +18,13 @@ address_3:
     pop rsi
     pop rdx
     syscall
-address_4:
-    ;; push str
-    push 8
-    push str_1
-address_5:
-    ;; push op
-    push 1
-address_6:
-    ;; push op
-    push 1
-address_7:
-    ;; syscall3
-    pop rax
-    pop rdi
-    pop rsi
-    pop rdx
-    syscall
     ;;; return
     mov rax, 60
     mov rdi, 0
     syscall
     ;;;
 section .data
-    str_0: db 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 0x0a
-    str_1: db 0x46, 0x6f, 0x6f, 0x0a, 0x42, 0x61, 0x72, 0x0a
+    str_0: db 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x20, 0x66, 0x72, 0x6f, 0x6d, 0x20, 0x69, 0x6e, 0x63, 0x6c, 0x75, 0x64, 0x65, 0x21, 0x0a
     ;;;
 section .bss
     MEMORY: resb 65024
