@@ -10,3 +10,4 @@ macro write (()) end        // alias of (())
 macro PAGE_SIZE 1584 end
 
 PAGE_SIZE dup + dump
+

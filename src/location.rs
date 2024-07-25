@@ -16,9 +16,6 @@ macro_rules! goto_loc {
     }
 }
 
-pub(crate) use goto_loc;
-
-
 impl Location {
     pub fn new(file: &str, row: usize, col: usize) -> Self {
         Self {

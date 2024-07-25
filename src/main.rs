@@ -6,9 +6,10 @@ mod utils;
 mod token;
 mod location;
 mod analyser;
+mod keyword;
 
 fn main() -> Result<(), std::io::Error> {
-    let cl_args = utils::process_command_line_args().unwrap_or_else(|e| panic!("[ERROR] {} {}", e.0, e.1));
+    let cl_args = utils::process_command_line_args();
 
     let tokens = lexer::lex_file_to_tokens(cl_args.src_files.first().unwrap())?; 
     if cl_args.dbg_flag {

@@ -299,12 +299,12 @@ fn generate_operation(
             writeln!(file, "\t    ;  ignore")?;
         }
         /* -------------------------------- // Preprocessor -------------------------- */
-        OperationKind::Macro => {
-            unreachable!("macro should have been gone by now");
-        }
-        OperationKind::Include(file) => {
-            panic!("include file not inplemeted: {file}");
-        }
+        // OperationKind::Macro => {
+        //     unreachable!("macro should have been gone by now");
+        // }
+        // OperationKind::Include(file) => {
+        //     panic!("include file not inplemeted: {file}");
+        // }
         /* -------------------------------- // Memory ------------------------------- */
         OperationKind::MemoryPush => {
             writeln!(file, ";; mem")?;

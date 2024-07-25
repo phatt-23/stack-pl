@@ -1,6 +1,7 @@
 use core::panic;
 use std::fs::File;
 use std::io::{self, BufRead};
+use crate::keyword::KeywordType;
 use crate::token::Token;
 use crate::location::Location;
 
@@ -57,14 +58,14 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
             col = find_col(&line, col_end + 1, |x| x != b' ');
         } else { // Parse Everything Else
             col_end = find_col(&line, col, |x| x == b' ');
-
             let word = &line[col..col_end]; 
-            let tok = match word.parse::<i32>() {
-                Ok(v)  => Token::new_integer(v, &loc),
-                Err(_) => Token::new_word(&word.to_string(), &loc),
-            };
-            tokens.push(tok);
-            
+            if let Some(keyword) = KeywordType::from_str(word) {
+                tokens.push(Token::new_keyword(keyword, &loc));
+            } else if let Ok(integer) = word.parse::<i32>() {
+                tokens.push(Token::new_integer(integer, &loc));
+            } else {
+                tokens.push(Token::new_word(&word.to_string(), &loc));
+            }
             col = find_col(&line, col_end, |x| x != b' ');
         }
         
@@ -73,8 +74,7 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
     tokens
 }
 
-fn read_lines<P>(filename: P) 
-    -> Result<io::Lines<io::BufReader<File>>, io::Error>
+fn read_lines<P>(filename: P) -> Result<io::Lines<io::BufReader<File>>, io::Error>
 where P: AsRef<std::path::Path> 
 {
     let file = File::open(filename)?;

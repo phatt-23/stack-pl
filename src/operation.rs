@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::location::Location;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -37,12 +36,12 @@ pub enum OperationKind {
     Not,
     // Keyword
     While,
-    Macro,
     If(i32),
     Else(i32),
     Do(i32),
     End(i32),
-    Include(String),
+    // Macro,            // <--- now as a keyword, recognized by the tokenizer
+    // Include(String),  // <---
     // Memory
     MemoryPush,
     MemoryLoad,
@@ -82,78 +81,62 @@ impl std::fmt::Display for Operation {
     }
 }
 
-impl OperationKind {
-    const JUMP_DEFAULT: i32 = -255;
-    const INCLUDE_DEFAULT: &'static str = "NoIncludeFileProvided";
+pub const JUMP_DEFAULT: i32 = -255;
 
-    pub fn from_str(s: &str) -> Option<Self> {
-        return HashMap::from([
+impl OperationKind {
+    pub fn from_str_builtin(s: &str) -> Option<Self> {
+        match s {
             // stack
-            ("dup",     OperationKind::Duplicate),
-            ("dup2",    OperationKind::Duplicate2),
-            ("drop",    OperationKind::Drop),
-            ("swap",    OperationKind::Swap),
-            ("over",    OperationKind::Over),
+            "dup"         => Some(OperationKind::Duplicate),
+            "dup2"        => Some(OperationKind::Duplicate2),
+            "drop"        => Some(OperationKind::Drop),
+            "swap"        => Some(OperationKind::Swap),
+            "over"        => Some(OperationKind::Over),
             // io
-            ("dump",    OperationKind::Dump),
-            ("print",   OperationKind::PrintChar),
+            "dump"        => Some(OperationKind::Dump),
+            "print"       => Some(OperationKind::PrintChar),
             // arithmetic
-            ("+",       OperationKind::Add),
-            ("add",     OperationKind::Add),
-            ("-",       OperationKind::Subtract),
-            ("sub",     OperationKind::Subtract),
-            ("*",       OperationKind::Multiply),
-            ("mul",     OperationKind::Multiply),
-            ("/",       OperationKind::Divide),
-            ("div",     OperationKind::Divide),
-            ("%",       OperationKind::Modulo),
-            ("mod",     OperationKind::Modulo),
+            "+" | "add"   => Some(OperationKind::Add),
+            "-" | "sub"   => Some(OperationKind::Subtract),
+            "*" | "mul"   => Some(OperationKind::Multiply),
+            "/" | "div"   => Some(OperationKind::Divide),
+            "%" | "mod"   => Some(OperationKind::Modulo),
             // logic
-            ("=",       OperationKind::Equal),
-            ("eq",      OperationKind::Equal),
-            ("!=",      OperationKind::NotEqual),
-            ("neq",     OperationKind::NotEqual),
-            ("<",       OperationKind::Less),
-            ("le",      OperationKind::Less),
-            (">",       OperationKind::Greater),
-            ("gr",      OperationKind::Greater),
-            ("<=",      OperationKind::LessEqual),
-            ("eql",     OperationKind::LessEqual),
-            (">=",      OperationKind::GreaterEqual),
-            ("egr",     OperationKind::GreaterEqual),
-            ("!",       OperationKind::Not),
-            ("not",     OperationKind::Not),
+            "="  | "eq"   => Some(OperationKind::Equal),
+            "!=" | "neq"  => Some(OperationKind::NotEqual),
+            "<"  | "le"   => Some(OperationKind::Less),
+            ">"  | "gr"   => Some(OperationKind::Greater),
+            "<=" | "eql"  => Some(OperationKind::LessEqual),
+            ">=" | "egr"  => Some(OperationKind::GreaterEqual),
+            "!"  | "not"  => Some(OperationKind::Not),
             // bitwise
-            ("<<",      OperationKind::ShiftLeft),
-            ("shl",     OperationKind::ShiftLeft),
-            (">>",      OperationKind::ShiftRight),
-            ("shr",     OperationKind::ShiftRight),
-            ("&",       OperationKind::BitAnd),
-            ("band",    OperationKind::BitAnd),
-            ("|",       OperationKind::BitOr),
-            ("bor",     OperationKind::BitOr),
-            // block
-            ("while",   OperationKind::While),
-            ("if",      OperationKind::If(Self::JUMP_DEFAULT)),
-            ("else",    OperationKind::Else(Self::JUMP_DEFAULT)),
-            ("do",      OperationKind::Do(Self::JUMP_DEFAULT)),
-            ("end",     OperationKind::End(Self::JUMP_DEFAULT)),
-            // preprocessor
-            ("macro",   OperationKind::Macro),
-            ("include", OperationKind::Include(Self::INCLUDE_DEFAULT.to_string())),
+            "<<" | "shl"  => Some(OperationKind::ShiftLeft),
+            ">>" | "shr"  => Some(OperationKind::ShiftRight),
+            "&"  | "band" => Some(OperationKind::BitAnd),
+            "|"  | "bor"  => Some(OperationKind::BitOr),
             // memory
-            ("mem",     OperationKind::MemoryPush),
-            (",",       OperationKind::MemoryLoad),
-            ("load",    OperationKind::MemoryLoad),
-            (".",       OperationKind::MemoryStore),
-            ("store",   OperationKind::MemoryStore),
+            "mem"         => Some(OperationKind::MemoryPush),
+            "load" | ","  => Some(OperationKind::MemoryLoad),
+            "store"| "."  => Some(OperationKind::MemoryStore),
             // syscall
-            ("syscall1",    OperationKind::Syscall1),
-            ("syscall2",    OperationKind::Syscall2),
-            ("syscall3",    OperationKind::Syscall3),
-            ("syscall4",    OperationKind::Syscall4),
-            ("syscall5",    OperationKind::Syscall5),
-            ("syscall6",    OperationKind::Syscall6),
-        ]).get(s).cloned();
+            "syscall1"    => Some(OperationKind::Syscall1),
+            "syscall2"    => Some(OperationKind::Syscall2),
+            "syscall3"    => Some(OperationKind::Syscall3),
+            "syscall4"    => Some(OperationKind::Syscall4),
+            "syscall5"    => Some(OperationKind::Syscall5),
+            "syscall6"    => Some(OperationKind::Syscall6),
+            _ => None
+        }
     }
+
+    // pub fn from_str_keyword(keyword: KeywordType) -> Option<Self> {
+    //     match keyword {
+    //         KeywordType::If => Some(OperationKind::If(JUMP_DEFAULT)),
+    //         KeywordType::End => Some(OperationKind::End(JUMP_DEFAULT)),
+    //         KeywordType::Else => Some(OperationKind::Else(JUMP_DEFAULT)),
+    //         KeywordType::While => Some(OperationKind::While),
+    //         KeywordType::Do => Some(OperationKind::Do(JUMP_DEFAULT)),
+    //         _ => None
+    //     }
+    // }
 }

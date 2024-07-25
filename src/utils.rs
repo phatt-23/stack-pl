@@ -1,21 +1,21 @@
 use std::{fs, io::Write, process::Command};
-use crate::location::Location;
-use crate::location::goto_loc;
 
 const LANGUAGE_SUFFIX: &str = ".p";
 
 pub fn print_usage() {
-    let args: Vec<String> = std::env::args().collect();
-    println!("[ERROR]: Invalid command: {}", args.join(" "));
-    println!("[USAGE]: <COMPILER> <FLAGS> <ARGUMENT>");
-    println!("     COMPILER: {}", args.first().unwrap());
-    println!("        FILES: source files must end with {:?} suffix", LANGUAGE_SUFFIX);
-    println!("        FLAGS: -s | --sim                        - interprets the code, doesnt create executable");
-    println!("               -c | --com                        - generates assembly code, creates executable");
-    println!("               -d | --dbg                        - prints out debug information");
-    println!("               -r | --run                        - runs the generated executable after compilation (must be used with -c or --com)");
-    println!("               -a | --asm    <path>              - specifies the path of generated assembly (intermediate code)");
-    println!("               -o | --output <path>              - specifies the path of generated executable");
+    println!("[USAGE]: <compiler> [options]", );
+    println!("     compiler:");
+    println!("         {}", std::env::current_exe().unwrap().display());
+    println!("     files:");
+    println!("         Source files must end with {:?} suffix", LANGUAGE_SUFFIX);
+    println!("     options:");
+    println!("         -s, --sim             Interprets the code, doesnt create executable");
+    println!("         -c, --com             Generates assembly code, creates executable");
+    println!("         -d, --dbg             Prints out debug information");
+    println!("         -r, --run             Runs the generated executable after compilation (must be used with -c or --com)");
+    println!("         -a, --asm    <path>   Specifies the path of generated assembly (intermediate code)");
+    println!("         -o, --output <path>   Specifies the path of generated executable");
+    println!("         -h, --help            Print usage");
 }
 
 pub fn run_command(args: &[&str]) {
@@ -25,7 +25,7 @@ pub fn run_command(args: &[&str]) {
         .unwrap_or_else(|e| panic!("[ERROR]: {:?}: {e}", args[0]));
     
     if !output.stdout.is_empty() {
-        println!("[INFO $stdout]: The stdout of command: {}", args.join(" "));
+        println!("[INFO]: The stdout of command: {}", args.join(" "));
         match std::str::from_utf8(&output.stdout) {
             Ok(stdout) => print!("{}", stdout),
             Err(_) => print!("{:?}", &output.stdout),
@@ -34,7 +34,7 @@ pub fn run_command(args: &[&str]) {
     }
 
     if !output.stderr.is_empty() {
-        println!("[INFO $stderr]: The stderr of command: {}", args.join(" "));
+        println!("[INFO]: The stderr of command: {}", args.join(" "));
         match std::str::from_utf8(&output.stderr) {
             Ok(stderr) => print!("{}", stderr),
             Err(_) => print!("{:?}", &output.stderr),
@@ -117,18 +117,7 @@ impl Default for CommandLineArgs {
     }
 }
 
-type ErrorMessageAndLocation = (Location, String);
-
-fn handle_flag_with_file_arg(flag: &str, loc: Location, arg: Option<&String>) -> Result<String, ErrorMessageAndLocation>  {
-    let file_arg = arg.unwrap_or_else(|| panic!("[ERROR]: {loc} ({flag}) no filepath provided"));
-    if file_arg.starts_with('-') {
-        Err((loc, format!("[ERROR]: ({flag}) invalid filepath: {file_arg}")))
-    } else {
-        Ok(file_arg.to_string())
-    }
-}
-
-pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLocation> {
+pub fn process_command_line_args() -> CommandLineArgs {
     let args: Vec<String> = std::env::args().collect();
     let mut cl_args: Vec<CommandLineArgKind> = Vec::new();
     let mut index: usize = 1;
@@ -143,31 +132,52 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
                     "--com" => cl_args.push(CommandLineArgKind::Compilation),
                     "--run" => cl_args.push(CommandLineArgKind::RunCompiledProgram),
                     "--asm" => {
-                        let file = handle_flag_with_file_arg("--asm", goto_loc!(), args.get(index + 1))?;
-                        cl_args.push(CommandLineArgKind::Assembly(file));
+                        let file = args.get(index + 1).unwrap_or_else(|| {
+                            println!("[ERROR]: {:?} No assembly filepath provided!", s);
+                            std::process::exit(1);
+                        });
+                        cl_args.push(CommandLineArgKind::Assembly(file.clone()));
                         index += 1;
                     }
                     "--out" => {
-                        let file = handle_flag_with_file_arg("--out", goto_loc!(), args.get(index + 1))?;
+                        let file = args.get(index + 1).unwrap_or_else(|| {
+                            println!("[ERROR]: {:?} No output filepath provided!", s);
+                            std::process::exit(1);
+                        });
                         cl_args.push(CommandLineArgKind::Output(file.clone()));
                         index += 1;
                     }
-                    e => {
+                    "--help" => {
                         print_usage();
-                        return Err((goto_loc!(), format!("{:?} unknown full argument starting with '--'", e)));
+                        std::process::exit(0);
+                    }
+                    e => {
+                        println!("[ERROR]: Invalid command: {}", args.join(" "));
+                        println!("[ERROR]: {:?} Unknown long option, run with --help for help!", e);
+                        std::process::exit(1);
                     }
                 }
             }
             // these must be handled on their own, cant be a part of multiple flags, they take in parameters
             "-a" => {
-                let file = handle_flag_with_file_arg("-a", goto_loc!(), args.get(index + 1))?;
+                let file = args.get(index + 1).unwrap_or_else(|| {
+                    println!("[ERROR]: {:?} No assembly filepath provided!", arg);
+                    std::process::exit(1);
+                });
                 cl_args.push(CommandLineArgKind::Assembly(file.clone()));
                 index += 1;
             }
             "-o" => {
-                let file = handle_flag_with_file_arg("-o", goto_loc!(), args.get(index + 1))?;
+                let file = args.get(index + 1).unwrap_or_else(|| {
+                    println!("[ERROR]: {:?} No output filepath provided!", arg);
+                    std::process::exit(1);
+                });
                 cl_args.push(CommandLineArgKind::Output(file.clone()));
                 index += 1;
+            }
+            "-h" => {
+                print_usage();
+                std::process::exit(0);
             }
             // these flags can be merged in one, can be part of multiple flags, dont take any parameters
             s if s.starts_with('-') => {
@@ -178,18 +188,21 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
                         's' => cl_args.push(CommandLineArgKind::Simulation),
                         'c' => cl_args.push(CommandLineArgKind::Compilation),
                         'r' => cl_args.push(CommandLineArgKind::RunCompiledProgram),
-                        'a' => return Err((goto_loc!(), "short flag 'a' must be used independently".to_string())),
-                        'o' => return Err((goto_loc!(), "short flag 'o' must be used independently".to_string())),
+                        'a' | 'o' => {
+                            println!("[ERROR]: {:?} Short flag must be used independently!", c);
+                            std::process::exit(1);
+                        }
                         e => {
-                            print_usage();
-                            return Err((goto_loc!(), format!("{:?} unknown short argument starting with '-'", e)));
+                            println!("[ERROR]: Invalid command: {}", args.join(" "));
+                            println!("[ERROR]: {:?} Unknown short option, run with --help for help!", e);
+                            std::process::exit(1);
                         }
                     }
                 }
             }
             e => {
-                print_usage();
-                return Err((goto_loc!(), format!("Unknown compiler argument {:?}, not a source file nor argument!", e)));
+                println!("[ERROR]: {:?} Unknown compiler argument, not a source file nor an argument!", e);
+                std::process::exit(1);
             }
         }
 
@@ -201,12 +214,10 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
     // if !(com_flag || sim_flag) { Err((goto_loc!(), format!("provide (-s, --sim) for simulation or (-c, --com) for compilation"))) }
     
     let src_files: Vec<&String> = cl_args.iter().filter_map(|arg| { if let CommandLineArgKind::File(file_name) = arg { Some(file_name) } else { None } }).collect();
-
-    
     if src_files.is_empty() {
-        return Err((goto_loc!(), "No a source file was provided".to_string()));
+        println!("[ERROR]: No source file was provided.");
+        std::process::exit(1);
     }
-
 
     let asm_files: Vec<String> = cl_args.iter().filter_map(|arg| {
         match arg {
@@ -221,7 +232,8 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
     
     let run_com_flag = if cl_args.contains(&CommandLineArgKind::RunCompiledProgram) {
         if !com_flag {
-            return Err((goto_loc!(), "(-r, --run) flags must be ran with compilation mode (-c, --com)".to_string()));
+            println!("[ERROR]: The run flag (-r, --run) must be ran with compilation mode (-c, --com).");
+            std::process::exit(1);
         }
         true
     } else {false};
@@ -233,10 +245,12 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
     let obj_file: Option<String> = if let Some(f) = &asm_file { 
         if f.ends_with(".asm") { 
             Some( f.replace(".asm", ".o") )
-        } else { panic!("[ERROR]: Specified ASM file output must have '.asm' suffix"); }
+        } else { 
+            println!("[ERROR]: {} Specified ASM file output must have '.asm' suffix.", f); 
+            std::process::exit(1);
+        }
     } else {None};
     let obj_file: Option<&String> = obj_file.as_ref();
-
     
     let cl_args = CommandLineArgs::new(
         src_files,
@@ -250,27 +264,20 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
     );
     
     use std::path::{PathBuf, Path};
-    
     let callers_dir = std::env::current_dir().unwrap();
-
     let path_buf = PathBuf::from(&cl_args.asm_file);
     let asm_obj_dir = path_buf.parent().unwrap(); 
-
     let path_buf = PathBuf::from(&cl_args.out_file);
     let out_dir = path_buf.parent().unwrap();
-    
     let mut dirs_to_check: Vec<_> = Vec::new();
     for p in out_dir.ancestors() {
         dirs_to_check.push(p);    
     }
-
     for p in asm_obj_dir.ancestors() {
         dirs_to_check.push(p);    
     }
-
     dirs_to_check.sort();
     dirs_to_check.dedup();
-
     for d in dirs_to_check {
         let path = format!("{}/{}", &callers_dir.display(), &d.display());
         if !Path::new(&path).exists() {
@@ -278,10 +285,8 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
                 println!("[WARN]: This path does not exist: {:?}", path);
                 print!("[PROMPT]: Do you wish to create it? Please enter (y) (n) (q): ");
                 let _ = std::io::stdout().flush();
-
                 let mut input_buffer = String::new();
                 std::io::stdin().read_line(&mut input_buffer).expect("[ERROR]: Input read incorrectly");
-
                 if let Some('\n') = input_buffer.chars().next_back() { input_buffer.pop(); } // remove new line escape char
                 if let Some('\r') = input_buffer.chars().next_back() { input_buffer.pop(); } // for windows ig 
                 match input_buffer.as_str() {
@@ -292,12 +297,12 @@ pub fn process_command_line_args() -> Result<CommandLineArgs, ErrorMessageAndLoc
                     }
                     "n" | "N" | "no" | "No" | "NO" => break,
                     "q" | "Q" | "quit" | "Quit" | "QUIT" => std::process::exit(0),
-                    _ => println!("[ERROR]: Entered {:?} is not a valid option", input_buffer)
+                    _ => println!("[ERROR]: Entered {:?} is not a valid option.", input_buffer)
                 }
             }
         }
     }
 
-    Ok(cl_args)
+    cl_args
 }
 
