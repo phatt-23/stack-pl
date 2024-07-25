@@ -1,12 +1,12 @@
 mod operation;
 mod generator;
-mod simulator;
 mod lexer;
 mod utils;
 mod token;
 mod location;
 mod analyser;
 mod keyword;
+mod intrinsic;
 
 fn main() -> Result<(), std::io::Error> {
     let cl_args = utils::process_command_line_args();
@@ -16,17 +16,14 @@ fn main() -> Result<(), std::io::Error> {
         tokens.iter().for_each(|t| println!("[INFO token]: {t}"));
     }
 
-    let operations = analyser::compile_tokens_to_operations(tokens)?;
+    let operations = analyser::compile_tokens_to_operations(tokens, &cl_args.inc_dirs)?;
     if cl_args.dbg_flag {
         operations.iter().for_each(|o| println!("[INFO op]: {o}"));
     }
     
     generator::generate_linux_nasm_x86_64(&operations, cl_args.asm_file.clone().as_str())?;
     
-    if cl_args.sim_flag {
-        simulator::simulate_program(operations);
-    }
-
+    // dbg!(&cl_args);
     if cl_args.com_flag {
         utils::run_command(&["nasm", "-felf64", &cl_args.asm_file, "-o", &cl_args.obj_file]);
         utils::run_command(&["ld", &cl_args.obj_file, "-o", &cl_args.out_file]);

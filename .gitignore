@@ -1,6 +1,5 @@
 /.vscode
 /target
-/tp_target
-/test_diff
-program
+/toi_target
+/test
 *.o

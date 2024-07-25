@@ -1,3 +1,4 @@
+include "std.p"
 
 macro A 1234 end
 

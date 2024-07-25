@@ -20,7 +20,7 @@ impl Macro {
     }
 }
 
-pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>, io::Error> {
+pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Vec<String>) -> Result<Vec<Operation>, io::Error> {
     let mut tokens = tokens.clone();
     tokens.reverse();
     
@@ -35,6 +35,7 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>
             TokenKind::Integer(value) => operations.push(Operation::new(OperationKind::PushInt(*value), token.loc)),
             TokenKind::String(value) => operations.push(Operation::new(OperationKind::PushStr(value.clone()), token.loc)),
             TokenKind::Char(value) => operations.push(Operation::new(OperationKind::PushChar(*value), token.loc)),
+            TokenKind::Intrinsic(value) => operations.push(Operation::new(OperationKind::Intrinsic(value.clone()), token.loc)),
             TokenKind::Word(value) => {
                 if let Some(op_kind) = OperationKind::from_str_builtin(value) {
                     operations.push(Operation::new(op_kind, token.loc.clone()));
@@ -49,9 +50,6 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>
                 }
             }
             TokenKind::KeyWord(value) => {
-                // if let Some(op_kind) = OperationKind::from_str_keyword(*value) {
-                //     operations.push(Operation::new(op_kind, token.loc.clone()));
-                // } 
                 use crate::operation::JUMP_DEFAULT;
                 match value {
                     KeywordType::If    => operations.push(Operation::new(OperationKind::If(JUMP_DEFAULT), token.loc)),
@@ -75,6 +73,7 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>
                             TokenKind::String(v) => panic!("[ERROR]: {} - Expected `macro` identifier `Word` but found `String`: {v:?}", token.loc),
                             TokenKind::Char(v) => unreachable!("[ERROR]: {} - Expected `macro` identifier `Word` but found `Char`: {v:?}", token.loc),
                             TokenKind::KeyWord(v) => panic!("[ERROR]: {} - Expected `macro` identifier `Word` but found `Keyword`: {v:?}", token.loc),
+                            TokenKind::Intrinsic(v) => panic!("[ERROR]: {} - Expected `macro` identifier `Word` but found `Intrinsic`: {v:?}", token.loc),
                         };
                         macros.insert(name.clone(), Macro::from(token.loc, name.clone(), Vec::new()));
                         while let Some(tok) = tokens.pop() {
@@ -91,8 +90,8 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>
                         continue;
                     }
                     KeywordType::Include => {
-                        let include_token = tokens.pop().unwrap();
-                        match &include_token.kind {
+                        let include_arg = tokens.pop().unwrap();
+                        match &include_arg.kind {
                             TokenKind::String(include_file) => {
                                 let src_path = PathBuf::from(&token.loc.file);
                                 let inc_path = PathBuf::from(&include_file);
@@ -101,28 +100,39 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>
                                 let inc_dir = inc_path.parent().unwrap().to_str().unwrap();
                                 let inc_file_name = inc_path.file_name().unwrap().to_str().unwrap();
 
-                                let search_dir = [src_dir, "/", inc_dir].concat();
+                                let mut search_directories = vec![ format!("{}/{}", src_dir, inc_dir) ];
+                                let mut include_directories = include_directories.clone();
+                                search_directories.append(&mut include_directories);
 
-                                let entries = fs::read_dir(&search_dir).unwrap_or_else(|e| panic!("[ERROR]: {} Directory {inc_dir:?} does not exist: {e}", &include_token.loc));
-
-                                let inc_file_path = entries
-                                    .filter_map(|e| e.ok())
-                                    .find(|e| e.file_name().to_str().unwrap() == inc_file_name)
-                                    .map(|e| ["./", search_dir.as_str(), "/", e.file_name().to_str().unwrap()].concat())
-                                    .unwrap_or_else(|| panic!("[ERROR]: {} File {inc_file_name:?} not found in directory {search_dir:?}", token.loc));
-                            
-                                match lexer::lex_file_to_tokens(&inc_file_path) {
-                                    Ok(ref mut include_tokens) => {
-                                        include_tokens.reverse();
-                                        tokens.append(include_tokens);
+                                for sd in search_directories.iter() {
+                                    if !fs::metadata(&sd).unwrap_or_else(|e| panic!("[ERROR]: {} Directory {inc_dir:?} does not exist: {e}", &include_arg.loc)).is_dir() {
+                                        panic!("[ERROR]: {:?} Provided path is not a directory", sd);
                                     }
-                                    Err(e) => panic!("[ERROR]: {} Could not include file {include_file:?}, Error: {e}", &include_token.loc),
+                                }
+
+                                search_directories.iter_mut().for_each(|d| *d = format!("{}/{}", d, inc_file_name).replace("//", "/") );
+                                
+                                while let Some(sd) = search_directories.pop() {
+                                    match lexer::lex_file_to_tokens(sd.as_str()) {
+                                        Ok(ref mut include_tokens) => {
+                                            // dbg!(&include_tokens);
+                                            include_tokens.reverse();
+                                            tokens.append(include_tokens);
+                                            break;
+                                        }
+                                        Err(e) => {
+                                            if search_directories.len() <= 1 {
+                                                panic!("[ERROR]: {} {:?} {}", include_arg.loc, include_file, e);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             TokenKind::Integer(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Integer`", token.loc),
                             TokenKind::Word(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Word`", token.loc),
                             TokenKind::Char(v) => unreachable!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Char`", token.loc),
                             TokenKind::KeyWord(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Keyword`", token.loc),
+                            TokenKind::Intrinsic(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Intrinsic`", token.loc),
                         }
                         continue;
                     }
@@ -146,7 +156,6 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>) -> Result<Vec<Operation>
             }
             OperationKind::Else(_) => {
                 let if_addr = stack.pop().unwrap();
-                // assert!(matches!(operations[if_addr].kind, OperationKind::If(_)));
                 if let OperationKind::If(ref mut if_jump) = operations.get_mut(if_addr).unwrap_or_else(|| panic!("[ERROR]: Operation at {if_addr} doesn't exist, expected `if` there")).kind {
                     *if_jump = (addr_counter + 1) as i32; 
                 }

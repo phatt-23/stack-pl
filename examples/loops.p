@@ -1,3 +1,5 @@
+include "std.p"
+
 0 while dup 10 < do 
     dup dump 
     1 +

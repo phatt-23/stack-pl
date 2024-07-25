@@ -1,3 +1,5 @@
+include "std.p"
+
 macro N 100 end
 
 mem 98 + 1 .

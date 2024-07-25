@@ -3,6 +3,7 @@ mod subprogram;
 use std::fs::File;
 use std::io::{self, Write};
 use crate::operation::{Operation, OperationKind};
+use crate::intrinsic::IntrinsicType;
 
 const STRING_SPACE: usize = 1_024;
 const MEMORY_SPACE: usize = 64_000;
@@ -98,178 +99,247 @@ fn generate_operation(
             // writeln!(file, "\t    mov  rdx, 2")?;
             // writeln!(file, "\t    syscall")?; 
         }
-        /* -------------------------------- // Stack -------------------------------- */
-        OperationKind::Drop => {
-            writeln!(file, ";; drop")?;
-            writeln!(file, "\t    pop rax")?;
-        }
-        OperationKind::Duplicate => {
-            writeln!(file, ";; dup")?;
-            writeln!(file, "\t    pop  rax")?;
-            writeln!(file, "\t    push rax")?;
-            writeln!(file, "\t    push rax")?;
-        }
-        OperationKind::Duplicate2 => {
-            writeln!(file, ";; dup 2")?;
-            writeln!(file, "\t    pop  rax")?;
-            writeln!(file, "\t    pop  rbx")?;
-            writeln!(file, "\t    push rbx")?;
-            writeln!(file, "\t    push rax")?;
-            writeln!(file, "\t    push rbx")?;
-            writeln!(file, "\t    push rax")?;
-        }
-        OperationKind::Over => {
-            writeln!(file, ";; over")?;
-            writeln!(file, "\t    pop  rax")?;
-            writeln!(file, "\t    pop  rbx")?;
-            writeln!(file, "\t    push rbx")?;
-            writeln!(file, "\t    push rax")?;
-            writeln!(file, "\t    push rbx")?;
-        }
-        OperationKind::Swap => {
-            writeln!(file, ";; swap")?;
-            writeln!(file, "\t    pop  rax")?;
-            writeln!(file, "\t    pop  rbx")?;
-            writeln!(file, "\t    push rax")?;
-            writeln!(file, "\t    push rbx")?;
-        }
-        /* ------------------------------ // Arithmetic ----------------------------- */
-        OperationKind::Add => {
-            writeln!(file, ";; plus")?;
-            writeln!(file, "\t    pop  rax")?;
-            writeln!(file, "\t    pop  rbx")?;
-            writeln!(file, "\t    add  rbx, rax")?;
-            writeln!(file, "\t    push rbx")?;
-        }
-        OperationKind::Subtract => {
-            writeln!(file, ";; minus")?;
-            writeln!(file, "\t    pop  rax")?;
-            writeln!(file, "\t    pop  rbx")?;
-            writeln!(file, "\t    sub  rbx, rax")?;
-            writeln!(file, "\t    push rbx")?;
-        }
-        OperationKind::Multiply => {
-            writeln!(file, ";; mult")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    cqo")?;
-            writeln!(file, "\t    imul  rbx")?; // rax * rbx = rdx:rax (128-bit integer)
-            writeln!(file, "\t    push  rax")?;
-        }
-        OperationKind::Divide => {
-            writeln!(file, ";; divide")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    cqo")?;
-            writeln!(file, "\t    idiv  rbx")?; // rax / rbx = rax     remainder rdx
-            writeln!(file, "\t    push  rax")?;
-        }
-        OperationKind::Modulo => {
-            writeln!(file, ";; modulo")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    cqo")?;
-            writeln!(file, "\t    idiv  rbx")?; // rax / rbx = rax     remainder rdx
-            writeln!(file, "\t    push  rdx")?;
-        }
-        /* -------------------------------- // Logic -------------------------------- */
-        OperationKind::Equal => {
-            writeln!(file, ";; eq")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    cmp   rbx, rax")?;
-            writeln!(file, "\t    mov   rbx, 0")?;
-            writeln!(file, "\t    mov   rax, 1")?;
-            writeln!(file, "\t    cmove rbx, rax")?;
-            writeln!(file, "\t    push  rbx")?;
-        }
-        OperationKind::NotEqual => {
-            writeln!(file, ";; not eq")?;
-            writeln!(file, "\t    pop    rax")?;
-            writeln!(file, "\t    pop    rbx")?;
-            writeln!(file, "\t    cmp    rbx, rax")?;
-            writeln!(file, "\t    mov    rbx, 0")?;
-            writeln!(file, "\t    mov    rax, 1")?;
-            writeln!(file, "\t    cmovne rbx, rax")?;
-            writeln!(file, "\t    push   rbx")?;
-        }
-        OperationKind::Less => {
-            writeln!(file, ";; le")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    cmp   rbx, rax")?;
-            writeln!(file, "\t    mov   rbx, 0")?;
-            writeln!(file, "\t    mov   rax, 1")?;
-            writeln!(file, "\t    cmovl rbx, rax")?;
-            writeln!(file, "\t    push  rbx")?;
-        }
-        OperationKind::Greater => {
-            writeln!(file, ";; gr")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    cmp   rbx, rax")?;
-            writeln!(file, "\t    mov   rbx, 0")?;
-            writeln!(file, "\t    mov   rax, 1")?;
-            writeln!(file, "\t    cmovg rbx, rax")?;
-            writeln!(file, "\t    push  rbx")?;
-        }
-        OperationKind::GreaterEqual => {
-            writeln!(file, ";; eqgr")?;
-            writeln!(file, "\t    pop    rax")?;
-            writeln!(file, "\t    pop    rbx")?;
-            writeln!(file, "\t    cmp    rbx, rax")?;
-            writeln!(file, "\t    mov    rbx, 0")?;
-            writeln!(file, "\t    mov    rax, 1")?;
-            writeln!(file, "\t    cmovge rbx, rax")?;
-            writeln!(file, "\t    push   rbx")?;
-        }
-        OperationKind::LessEqual => {
-            writeln!(file, ";; eqle")?;
-            writeln!(file, "\t    pop    rax")?;
-            writeln!(file, "\t    pop    rbx")?;
-            writeln!(file, "\t    cmp    rbx, rax")?;
-            writeln!(file, "\t    mov    rbx, 0")?;
-            writeln!(file, "\t    mov    rax, 1")?;
-            writeln!(file, "\t    cmovle rbx, rax")?;
-            writeln!(file, "\t    push   rbx")?;
-        }
-        OperationKind::Not => {
-            writeln!(file, ";; not")?;
-            writeln!(file, "\t    pop    rax")?;
-            writeln!(file, "\t    cmp    rax, 0")?;
-            writeln!(file, "\t    mov    rbx, 0")?;
-            writeln!(file, "\t    mov    rax, 1")?;
-            writeln!(file, "\t    cmovz  rbx, rax")?;
-            writeln!(file, "\t    push   rbx")?;
-        }
-        /* ------------------------------- // Bitwise ------------------------------- */
-        OperationKind::BitAnd => {
-            writeln!(file, ";; bit and")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    and   rbx, rax")?;
-            writeln!(file, "\t    push  rbx")?;
-        }
-        OperationKind::BitOr => {
-            writeln!(file, ";; bit or")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    or    rbx, rax")?;
-            writeln!(file, "\t    push  rbx")?;
-        }
-        OperationKind::ShiftRight => {
-            writeln!(file, ";; shift right")?;
-            writeln!(file, "\t    pop   rcx")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    shr   rbx, cl")?;
-            writeln!(file, "\t    push  rbx")?;
-        }
-        OperationKind::ShiftLeft => {
-            writeln!(file, ";; shift left")?;
-            writeln!(file, "\t    pop   rcx")?;
-            writeln!(file, "\t    pop   rbx")?;
-            writeln!(file, "\t    shl   rbx, cl")?;
-            writeln!(file, "\t    push  rbx")?;
+        /* ------------------------------ // Intrinsic ------------------------------ */
+            /* -------------------------------- // Stack -------------------------------- */
+        OperationKind::Intrinsic(intrinsic_type) => {
+            match intrinsic_type {
+                IntrinsicType::Drop => {
+                    writeln!(file, ";; drop")?;
+                    writeln!(file, "\t    pop rax")?;
+                }
+                IntrinsicType::Duplicate => {
+                    writeln!(file, ";; dup")?;
+                    writeln!(file, "\t    pop  rax")?;
+                    writeln!(file, "\t    push rax")?;
+                    writeln!(file, "\t    push rax")?;
+                }
+                IntrinsicType::Over => {
+                    writeln!(file, ";; over")?;
+                    writeln!(file, "\t    pop  rax")?;
+                    writeln!(file, "\t    pop  rbx")?;
+                    writeln!(file, "\t    push rbx")?;
+                    writeln!(file, "\t    push rax")?;
+                    writeln!(file, "\t    push rbx")?;
+                }
+                IntrinsicType::Swap => {
+                    writeln!(file, ";; swap")?;
+                    writeln!(file, "\t    pop  rax")?;
+                    writeln!(file, "\t    pop  rbx")?;
+                    writeln!(file, "\t    push rax")?;
+                    writeln!(file, "\t    push rbx")?;
+                }
+                /* ------------------------------ // Arithmetic ----------------------------- */
+                IntrinsicType::Add => {
+                    writeln!(file, ";; plus")?;
+                    writeln!(file, "\t    pop  rax")?;
+                    writeln!(file, "\t    pop  rbx")?;
+                    writeln!(file, "\t    add  rbx, rax")?;
+                    writeln!(file, "\t    push rbx")?;
+                }
+                IntrinsicType::Subtract => {
+                    writeln!(file, ";; minus")?;
+                    writeln!(file, "\t    pop  rax")?;
+                    writeln!(file, "\t    pop  rbx")?;
+                    writeln!(file, "\t    sub  rbx, rax")?;
+                    writeln!(file, "\t    push rbx")?;
+                }
+                IntrinsicType::Multiply => {
+                    writeln!(file, ";; mult")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    cqo")?;
+                    writeln!(file, "\t    imul  rbx")?; // rax * rbx = rdx:rax (128-bit integer)
+                    writeln!(file, "\t    push  rax")?;
+                }
+                IntrinsicType::DivMod => {
+                    writeln!(file, ";; divide")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    cqo")?;
+                    writeln!(file, "\t    idiv  rbx")?; // rax / rbx = rax     remainder rdx
+                    writeln!(file, "\t    push  rax")?;
+                    writeln!(file, "\t    push  rdx")?;
+                }
+                /* -------------------------------- // Logic -------------------------------- */
+                IntrinsicType::Equal => {
+                writeln!(file, ";; eq")?;
+                writeln!(file, "\t    pop   rax")?;
+                writeln!(file, "\t    pop   rbx")?;
+                writeln!(file, "\t    cmp   rbx, rax")?;
+                writeln!(file, "\t    mov   rbx, 0")?;
+                writeln!(file, "\t    mov   rax, 1")?;
+                writeln!(file, "\t    cmove rbx, rax")?;
+                writeln!(file, "\t    push  rbx")?;
+                }
+                IntrinsicType::NotEqual => {
+                    writeln!(file, ";; not eq")?;
+                    writeln!(file, "\t    pop    rax")?;
+                    writeln!(file, "\t    pop    rbx")?;
+                    writeln!(file, "\t    cmp    rbx, rax")?;
+                    writeln!(file, "\t    mov    rbx, 0")?;
+                    writeln!(file, "\t    mov    rax, 1")?;
+                    writeln!(file, "\t    cmovne rbx, rax")?;
+                    writeln!(file, "\t    push   rbx")?;
+                }
+                IntrinsicType::Less => {
+                    writeln!(file, ";; le")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    cmp   rbx, rax")?;
+                    writeln!(file, "\t    mov   rbx, 0")?;
+                    writeln!(file, "\t    mov   rax, 1")?;
+                    writeln!(file, "\t    cmovl rbx, rax")?;
+                    writeln!(file, "\t    push  rbx")?;
+                }
+                IntrinsicType::Greater => {
+                    writeln!(file, ";; gr")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    cmp   rbx, rax")?;
+                    writeln!(file, "\t    mov   rbx, 0")?;
+                    writeln!(file, "\t    mov   rax, 1")?;
+                    writeln!(file, "\t    cmovg rbx, rax")?;
+                    writeln!(file, "\t    push  rbx")?;
+                }
+                IntrinsicType::GreaterEqual => {
+                    writeln!(file, ";; eqgr")?;
+                    writeln!(file, "\t    pop    rax")?;
+                    writeln!(file, "\t    pop    rbx")?;
+                    writeln!(file, "\t    cmp    rbx, rax")?;
+                    writeln!(file, "\t    mov    rbx, 0")?;
+                    writeln!(file, "\t    mov    rax, 1")?;
+                    writeln!(file, "\t    cmovge rbx, rax")?;
+                    writeln!(file, "\t    push   rbx")?;
+                }
+                IntrinsicType::LessEqual => {
+                    writeln!(file, ";; eqle")?;
+                    writeln!(file, "\t    pop    rax")?;
+                    writeln!(file, "\t    pop    rbx")?;
+                    writeln!(file, "\t    cmp    rbx, rax")?;
+                    writeln!(file, "\t    mov    rbx, 0")?;
+                    writeln!(file, "\t    mov    rax, 1")?;
+                    writeln!(file, "\t    cmovle rbx, rax")?;
+                    writeln!(file, "\t    push   rbx")?;
+                }
+                IntrinsicType::Not => {
+                    writeln!(file, ";; not")?;
+                    writeln!(file, "\t    pop    rax")?;
+                    writeln!(file, "\t    cmp    rax, 0")?;
+                    writeln!(file, "\t    mov    rbx, 0")?;
+                    writeln!(file, "\t    mov    rax, 1")?;
+                    writeln!(file, "\t    cmovz  rbx, rax")?;
+                    writeln!(file, "\t    push   rbx")?;
+                }
+                /* ------------------------------- // Bitwise ------------------------------- */
+                IntrinsicType::BitNegate => {
+                    writeln!(file, ";; bit neg")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    not   rax")?;
+                    writeln!(file, "\t    push  rax")?;    
+                }
+                IntrinsicType::BitAnd => {
+                    writeln!(file, ";; bit and")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    and   rbx, rax")?;
+                    writeln!(file, "\t    push  rbx")?;
+                }
+                IntrinsicType::BitOr => {
+                    writeln!(file, ";; bit or")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    or    rbx, rax")?;
+                    writeln!(file, "\t    push  rbx")?;
+                }
+                IntrinsicType::ShiftRight => {
+                    writeln!(file, ";; shift right")?;
+                    writeln!(file, "\t    pop   rcx")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    shr   rbx, cl")?;
+                    writeln!(file, "\t    push  rbx")?;
+                }
+                IntrinsicType::ShiftLeft => {
+                    writeln!(file, ";; shift left")?;
+                    writeln!(file, "\t    pop   rcx")?;
+                    writeln!(file, "\t    pop   rbx")?;
+                    writeln!(file, "\t    shl   rbx, cl")?;
+                    writeln!(file, "\t    push  rbx")?;
+                }
+                /* -------------------------------- // Memory ------------------------------- */
+                IntrinsicType::MemoryPush => {
+                    writeln!(file, ";; mem")?;
+                    // push the address of MEMORY in .bss
+                    writeln!(file, "\t    push MEMORY")?; 
+                    writeln!(file, "\t    pop rax")?;
+                    writeln!(file, "\t    add rax, {}", STRING_SPACE)?;
+                    writeln!(file, "\t    push rax")?;
+                }
+                IntrinsicType::MemoryLoad => {
+                    writeln!(file, ";; load")?;
+                    writeln!(file, "\t    pop   rax")?;
+                    writeln!(file, "\t    xor   rbx, rbx")?;
+                    writeln!(file, "\t    mov   bl, byte [rax]")?;
+                    writeln!(file, "\t    push  rbx")?;
+                }
+                IntrinsicType::MemoryStore => {
+                    writeln!(file, ";; store")?;
+                    writeln!(file, "\t    pop rbx")?; // value
+                    writeln!(file, "\t    pop rax")?; // address
+                    writeln!(file, "\t    mov byte [rax], bl")?; // address
+                }
+                /* ------------------------------- // Syscall ------------------------------- */
+                IntrinsicType::Syscall1 => {
+                    writeln!(file, ";; syscall1")?;
+                    writeln!(file, "\t    pop rax")?;
+                    writeln!(file, "\t    pop rdi")?;
+                    writeln!(file, "\t    syscall")?;
+                }
+                IntrinsicType::Syscall2 => {
+                    writeln!(file, ";; syscall3")?;
+                    writeln!(file, "\t    pop rax")?;
+                    writeln!(file, "\t    pop rdi")?;
+                    writeln!(file, "\t    pop rsi")?;
+                    writeln!(file, "\t    syscall")?;
+                }
+                IntrinsicType::Syscall3 => {
+                    writeln!(file, ";; syscall3")?;
+                    writeln!(file, "\t    pop rax")?;
+                    writeln!(file, "\t    pop rdi")?;
+                    writeln!(file, "\t    pop rsi")?;
+                    writeln!(file, "\t    pop rdx")?;
+                    writeln!(file, "\t    syscall")?;
+                }
+                IntrinsicType::Syscall4 => {
+                    writeln!(file, ";; syscall4")?;
+                    writeln!(file, "\t    pop rax")?;
+                    writeln!(file, "\t    pop rdi")?;
+                    writeln!(file, "\t    pop rsi")?;
+                    writeln!(file, "\t    pop rdx")?;
+                    writeln!(file, "\t    pop r10")?;
+                    writeln!(file, "\t    syscall")?;
+                }
+                IntrinsicType::Syscall5 => {
+                    writeln!(file, ";; syscall5")?;
+                    writeln!(file, "\t    pop rax")?;
+                    writeln!(file, "\t    pop rdi")?;
+                    writeln!(file, "\t    pop rsi")?;
+                    writeln!(file, "\t    pop rdx")?;
+                    writeln!(file, "\t    pop r10")?;
+                    writeln!(file, "\t    pop r8")?;
+                    writeln!(file, "\t    syscall")?;
+                }
+                IntrinsicType::Syscall6 => {
+                    writeln!(file, ";; syscall6")?;
+                    writeln!(file, "\t    pop rax")?;
+                    writeln!(file, "\t    pop rdi")?;
+                    writeln!(file, "\t    pop rsi")?;
+                    writeln!(file, "\t    pop rdx")?;
+                    writeln!(file, "\t    pop r10")?;
+                    writeln!(file, "\t    pop r8")?;
+                    writeln!(file, "\t    pop r9")?;
+                    writeln!(file, "\t    syscall")?;
+                }
+            }
         }
         /* ---------------------------------- // Block --------------------------------- */
         OperationKind::If(jump) => {
@@ -297,87 +367,6 @@ fn generate_operation(
         OperationKind::While => {
             writeln!(file, ";; while")?;
             writeln!(file, "\t    ;  ignore")?;
-        }
-        /* -------------------------------- // Preprocessor -------------------------- */
-        // OperationKind::Macro => {
-        //     unreachable!("macro should have been gone by now");
-        // }
-        // OperationKind::Include(file) => {
-        //     panic!("include file not inplemeted: {file}");
-        // }
-        /* -------------------------------- // Memory ------------------------------- */
-        OperationKind::MemoryPush => {
-            writeln!(file, ";; mem")?;
-            // push the address of MEMORY in .bss
-            writeln!(file, "\t    push MEMORY")?; 
-            writeln!(file, "\t    pop rax")?;
-            writeln!(file, "\t    add rax, {}", STRING_SPACE)?;
-            writeln!(file, "\t    push rax")?;
-        }
-        OperationKind::MemoryLoad => {
-            writeln!(file, ";; load")?;
-            writeln!(file, "\t    pop   rax")?;
-            writeln!(file, "\t    xor   rbx, rbx")?;
-            writeln!(file, "\t    mov   bl, byte [rax]")?;
-            writeln!(file, "\t    push  rbx")?;
-        }
-        OperationKind::MemoryStore => {
-            writeln!(file, ";; store")?;
-            writeln!(file, "\t    pop rbx")?; // value
-            writeln!(file, "\t    pop rax")?; // address
-            writeln!(file, "\t    mov byte [rax], bl")?; // address
-        }
-        /* ------------------------------- // Syscall ------------------------------- */
-        OperationKind::Syscall1 => {
-            writeln!(file, ";; syscall1")?;
-            writeln!(file, "\t    pop rax")?;
-            writeln!(file, "\t    pop rdi")?;
-            writeln!(file, "\t    syscall")?;
-        }
-        OperationKind::Syscall2 => {
-            writeln!(file, ";; syscall3")?;
-            writeln!(file, "\t    pop rax")?;
-            writeln!(file, "\t    pop rdi")?;
-            writeln!(file, "\t    pop rsi")?;
-            writeln!(file, "\t    syscall")?;
-        }
-        OperationKind::Syscall3 => {
-            writeln!(file, ";; syscall3")?;
-            writeln!(file, "\t    pop rax")?;
-            writeln!(file, "\t    pop rdi")?;
-            writeln!(file, "\t    pop rsi")?;
-            writeln!(file, "\t    pop rdx")?;
-            writeln!(file, "\t    syscall")?;
-        }
-        OperationKind::Syscall4 => {
-            writeln!(file, ";; syscall4")?;
-            writeln!(file, "\t    pop rax")?;
-            writeln!(file, "\t    pop rdi")?;
-            writeln!(file, "\t    pop rsi")?;
-            writeln!(file, "\t    pop rdx")?;
-            writeln!(file, "\t    pop r10")?;
-            writeln!(file, "\t    syscall")?;
-        }
-        OperationKind::Syscall5 => {
-            writeln!(file, ";; syscall5")?;
-            writeln!(file, "\t    pop rax")?;
-            writeln!(file, "\t    pop rdi")?;
-            writeln!(file, "\t    pop rsi")?;
-            writeln!(file, "\t    pop rdx")?;
-            writeln!(file, "\t    pop r10")?;
-            writeln!(file, "\t    pop r8")?;
-            writeln!(file, "\t    syscall")?;
-        }
-        OperationKind::Syscall6 => {
-            writeln!(file, ";; syscall6")?;
-            writeln!(file, "\t    pop rax")?;
-            writeln!(file, "\t    pop rdi")?;
-            writeln!(file, "\t    pop rsi")?;
-            writeln!(file, "\t    pop rdx")?;
-            writeln!(file, "\t    pop r10")?;
-            writeln!(file, "\t    pop r8")?;
-            writeln!(file, "\t    pop r9")?;
-            writeln!(file, "\t    syscall")?;
         }
     }
     Ok(0)

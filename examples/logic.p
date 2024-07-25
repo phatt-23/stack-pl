@@ -1,3 +1,5 @@
+include "std.p"
+
 1 3 = dump
 1 1 = dump
 

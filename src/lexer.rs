@@ -4,6 +4,7 @@ use std::io::{self, BufRead};
 use crate::keyword::KeywordType;
 use crate::token::Token;
 use crate::location::Location;
+use crate::intrinsic::IntrinsicType;
 
 pub fn lex_file_to_tokens(file: &str) -> Result<Vec<Token>, io::Error> {
     // println!("[INFO]: reading the program from '{}'", file);
@@ -59,13 +60,17 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
         } else { // Parse Everything Else
             col_end = find_col(&line, col, |x| x == b' ');
             let word = &line[col..col_end]; 
+
             if let Some(keyword) = KeywordType::from_str(word) {
                 tokens.push(Token::new_keyword(keyword, &loc));
+            } else if let Some(intrinsic) = IntrinsicType::from_str(word) {
+                tokens.push(Token::new_intrinsic(intrinsic, &loc));
             } else if let Ok(integer) = word.parse::<i32>() {
                 tokens.push(Token::new_integer(integer, &loc));
             } else {
                 tokens.push(Token::new_word(&word.to_string(), &loc));
             }
+
             col = find_col(&line, col_end, |x| x != b' ');
         }
         

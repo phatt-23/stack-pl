@@ -1,13 +1,13 @@
+include "std.p"
 
 macro [[]] 1 syscall3 end
+macro (()) 1 [[]] end       
+macro my_write (()) end        
 
-macro (()) 1 [[]] end       // will get expended to 1 1 syscall3
+"Hello, World\n" (()) 
+"Fooooooo Baar\n" my_write
 
-macro write (()) end        // alias of (())
+macro MY_SIZE 1584 end
 
-"Hello, World\n" (()) "Fooooooo Baar\n" write
-
-macro PAGE_SIZE 1584 end
-
-PAGE_SIZE dup + dump
+MY_SIZE dup + dump
 

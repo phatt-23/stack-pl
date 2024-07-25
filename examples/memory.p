@@ -1,3 +1,4 @@
+include "std.p"
 
 mem dup 72  .  
 1 + dup 101 . 

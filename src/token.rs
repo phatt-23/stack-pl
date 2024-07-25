@@ -1,5 +1,6 @@
 use crate::location::Location;
 use crate::keyword::KeywordType;
+use crate::intrinsic::IntrinsicType;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum TokenKind {
@@ -8,6 +9,7 @@ pub enum TokenKind {
     String(String),
     Char(char),
     KeyWord(KeywordType),
+    Intrinsic(IntrinsicType)
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -53,6 +55,13 @@ impl Token {
         Self { 
             loc: loc.clone(),
             kind: TokenKind::KeyWord(value), 
+        }
+    }
+    #[must_use]
+    pub fn new_intrinsic(value: IntrinsicType, loc: &Location) -> Self {
+        Self {
+            loc: loc.clone(),
+            kind: TokenKind::Intrinsic(value),
         }
     }
 }
