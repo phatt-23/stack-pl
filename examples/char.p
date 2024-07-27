@@ -1,13 +1,12 @@
 
-'*' print
-44 print
-44 dump
+'*'     printc
+44      printc
+44      print
 
-// '\n' print
-// 10 print
-// '\n' dump
+'\n'    print
+10      print
+'\n'    print
 
-
-// '#' print
-// 35 print
-// 35 dump
+'#'     printc
+35      printc
+35      printc

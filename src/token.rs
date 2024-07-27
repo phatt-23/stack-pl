@@ -5,7 +5,8 @@ use crate::intrinsic::IntrinsicType;
 #[derive(PartialEq, Clone, Debug)]
 pub enum TokenKind {
     Word(String),
-    Integer(i32),
+    Integer64(i64),
+    Integer32(i32),
     String(String),
     Char(char),
     KeyWord(KeywordType),
@@ -16,14 +17,24 @@ pub enum TokenKind {
 pub struct Token {
     pub loc: Location,
     pub kind: TokenKind,
+    pub expanded: usize,
 }
 
 impl Token {
     #[must_use]
-    pub fn new_integer(value: i32, loc: &Location) -> Self {
+    pub fn new_integer64(value: i64, loc: &Location) -> Self {
         Self { 
             loc: loc.clone(),
-            kind: TokenKind::Integer(value), 
+            kind: TokenKind::Integer64(value), 
+            expanded: 0,
+        }
+    }
+    #[must_use]
+    pub fn new_integer32(value: i32, loc: &Location) -> Self {
+        Self { 
+            loc: loc.clone(),
+            kind: TokenKind::Integer32(value), 
+            expanded: 0,
         }
     }
     #[must_use]
@@ -31,6 +42,7 @@ impl Token {
         Self { 
             loc: loc.clone(),
             kind: TokenKind::Word(value.to_string()), 
+            expanded: 0,
         }
     }
     #[must_use]
@@ -38,16 +50,19 @@ impl Token {
         Self { 
             loc: loc.clone(),
             kind: TokenKind::Char(value), 
+            expanded: 0,
         }
     }
     #[must_use]
     pub fn new_string(value: &str, loc: &Location) -> Self {
         let value = value.replace("\\n", "\n")
                          .replace("\\t", "\t")
-                         .replace("\\r", "\r");
+                         .replace("\\r", "\r")
+                         .replace("\\0", "\0");
         Self { 
             loc: loc.clone(),
             kind: TokenKind::String(value), 
+            expanded: 0,
         }
     }
     #[must_use]
@@ -55,6 +70,7 @@ impl Token {
         Self { 
             loc: loc.clone(),
             kind: TokenKind::KeyWord(value), 
+            expanded: 0,
         }
     }
     #[must_use]
@@ -62,6 +78,7 @@ impl Token {
         Self {
             loc: loc.clone(),
             kind: TokenKind::Intrinsic(value),
+            expanded: 0,
         }
     }
 }

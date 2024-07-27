@@ -42,7 +42,7 @@ compiler=./target/debug/stack_based_PL
 src_dir=examples
 
 # Path of Toi stdlib
-stdlib=./stdlib/std
+stdlib=./stdlib/
 
 # Difference control main directory
 test_dir=test

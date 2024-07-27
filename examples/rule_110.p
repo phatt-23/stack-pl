@@ -1,8 +1,8 @@
-include "std.p"
+include "stdlib.p"
 
 macro N 100 end
 
-mem 98 + 1 .
+mem N 2 - + 1 .
 
 0 while dup N 2 - < do
     0 while dup N < do
@@ -28,8 +28,7 @@ mem 98 + 1 .
         swap
 
         1 +
-    end
-    drop 
+    end drop 
     drop
 
     1 +

@@ -1,31 +1,31 @@
-include "std.p"
+include "stdlib.p"
 
 macro A 1234 end
 
 1 3 < if
     A A = if
         12 23 > if
-            12345 dump
+            12345 print
         end
     else
-        54321 dump
+        54321 print
     end
-    123 dump // <--- only this is printed 
+    123 print // <--- only this is printed 
 else
-    321 dump
+    321 print
 end
 
 
 1 1 > if
-    111 dump
+    111 print
 else 
     1 1 < if
-        222 dump
+        222 print
     else 
         1 1 = if
-            333 dump // <---- this is printed
+            333 print // <---- this is printed
         else
-            444 dump
+            444 print
         end
     end
 end

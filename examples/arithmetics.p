@@ -1,18 +1,18 @@
-include "std.p"
+include "stdlib.p"
 
 "Hello, World\n" 1 1 syscall3
 
 "-------------------------------------------\n" write 
-123 dup + dump
-123 345 - dump
+123 dup + print
+123 345 - print
 "-------------------------------------------\n" write
-5 4 * dump
-59 6 / dump
-5 2 % dump
+5 4 * print
+59 6 / print
+5 2 % print
 "-------------------------------------------\n" write
-3 5 + dump
-5 5 * dump
-11 3 - dump
-100 15 * dump
+3 5 + print
+5 5 * print
+11 3 - print
+100 15 * print
 "-------------------------------------------\n" write
 

@@ -1,30 +1,24 @@
+// use crate::keyword::KeywordType;
 use crate::location::Location;
 use crate::intrinsic::IntrinsicType;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum OperationKind {
-    // PushTypes
-    PushInt(i32),
+    // Push Types
+    PushInt32(i32),
+    PushInt64(i64),
     PushStr(String),
     PushChar(char),
-    // Stack
-    // Arithmetic
-    // Bitwise
-    // Logic
-    // Memory
-    // Syscall
     Intrinsic(IntrinsicType),
     // IO
-    Dump,
+    PrintInt64,
     PrintChar,
+    // Keyword(KeywordType, Option<usize>),
     While,
-    // Keyword
-    // Macro,            // <--- now as a keyword, recognized by the tokenizer
-    // Include(String),  // <---
-    If(i32),
-    Else(i32),
-    Do(i32),
-    End(i32),
+    If(Option<usize>),
+    Else(Option<usize>),
+    Do(Option<usize>),
+    End(Option<usize>),
 }
 
 
@@ -40,9 +34,9 @@ impl Operation {
     const DEFAULT_ADDRESS: usize = usize::MAX;
     pub fn new(op_kind: OperationKind, location: Location) -> Self {
         Self {
-            loc:        location,
-            address:    Self::DEFAULT_ADDRESS,
-            kind:       op_kind,
+            loc:     location,
+            address: Self::DEFAULT_ADDRESS,
+            kind:    op_kind,
         }
     }
 }
@@ -53,13 +47,11 @@ impl std::fmt::Display for Operation {
     }
 }
 
-pub const JUMP_DEFAULT: i32 = -255;
-
 impl OperationKind {
     pub fn from_str_builtin(s: &str) -> Option<Self> {
         match s {
-            "dump"        => Some(OperationKind::Dump),
-            "print"       => Some(OperationKind::PrintChar),
+            "print"  => Some(OperationKind::PrintInt64),
+            "printc" => Some(OperationKind::PrintChar),
             _ => None
         }
     }

@@ -1,4 +1,4 @@
-include "std.p"
+include "stdlib.p"
 
 mem dup 72  .  
 1 + dup 101 . 
@@ -14,7 +14,7 @@ dup mem - mem 1 1 syscall3
 
 0
 0
-dump dump
+print print
 
 123 60 syscall1
 

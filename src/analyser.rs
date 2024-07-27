@@ -8,91 +8,115 @@ use crate::location::Location;
 use crate::lexer;
 
 #[derive(Debug, Clone, PartialEq)]
-struct Macro {
+pub struct Macro {
     pub loc: Location,
     pub name: String,
     pub tokens: Vec<Token>,
 }
 
 impl Macro {
+    pub const DEFAULT_EXPANSION_LIMIT: usize = 1000;
     pub fn from(loc: Location, name: String, tokens: Vec<Token>) -> Self {
         Self { loc, name, tokens }
     }
 }
 
-pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Vec<String>) -> Result<Vec<Operation>, io::Error> {
+pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Vec<String>, expansion_limit: usize) -> Result<Vec<Operation>, io::Error> {
     let mut tokens = tokens.clone();
     tokens.reverse();
     
-    let mut operations: Vec<Operation> = Vec::new();
-    let mut stack: Vec<usize> = Vec::new();
-    let mut macros: HashMap<String, Macro> = HashMap::new();
-    let mut addr_counter: usize = 0;
+    let mut operations:     Vec<Operation>          = Vec::new();
+    let mut stack:          Vec<usize>              = Vec::new();
+    let mut macros:         HashMap<String, Macro>  = HashMap::new();
+    let mut includes:       HashMap<String, usize>  = HashMap::new();
+    let mut addr_counter:   usize                   = 0;
 
     while let Some(token) = tokens.pop() {
         // compile token to operation
         match &token.kind {
-            TokenKind::Integer(value) => operations.push(Operation::new(OperationKind::PushInt(*value), token.loc)),
-            TokenKind::String(value) => operations.push(Operation::new(OperationKind::PushStr(value.clone()), token.loc)),
-            TokenKind::Char(value) => operations.push(Operation::new(OperationKind::PushChar(*value), token.loc)),
+            TokenKind::Integer32(value) => operations.push(Operation::new(OperationKind::PushInt32(*value), token.loc)),
+            TokenKind::Integer64(value) => operations.push(Operation::new(OperationKind::PushInt64(*value), token.loc)),
+            TokenKind::String(value)    => operations.push(Operation::new(OperationKind::PushStr(value.clone()), token.loc)),
+            TokenKind::Char(value)      => operations.push(Operation::new(OperationKind::PushChar(*value), token.loc)),
             TokenKind::Intrinsic(value) => operations.push(Operation::new(OperationKind::Intrinsic(value.clone()), token.loc)),
-            TokenKind::Word(value) => {
+            TokenKind::Word(value)      => {
                 if let Some(op_kind) = OperationKind::from_str_builtin(value) {
                     operations.push(Operation::new(op_kind, token.loc.clone()));
                 } else if let Some(m) = macros.get_mut(value) {
                     for i in 0..m.tokens.len() {
+                        let m_token = m.tokens.get_mut(i).unwrap();
+                        m_token.expanded += 1;
+                        if m_token.expanded >= expansion_limit {
+                            panic!("[ERROR]: {} Macro {:?} from {} was expanded beyond the macro expansion limit of {}!", token.loc, value, m_token.loc, expansion_limit);
+                        }
                         let t = m.tokens.get(i).unwrap();
                         tokens.push(t.clone()); 
                     }
-                    continue; // so that the address wont get incremented
+                    continue;//So that the addr_counter wont get incremented
                 } else {
-                    panic!("[ERROR]: Unknown word, identifier {} {:?}", token.loc, token.kind);
+                    panic!("[ERROR]: {} Unknown word (identifier) {:?}!", token.loc, token.kind);
                 }
             }
             TokenKind::KeyWord(value) => {
-                use crate::operation::JUMP_DEFAULT;
                 match value {
-                    KeywordType::If    => operations.push(Operation::new(OperationKind::If(JUMP_DEFAULT), token.loc)),
-                    KeywordType::End   => operations.push(Operation::new(OperationKind::End(JUMP_DEFAULT), token.loc)),
-                    KeywordType::Else  => operations.push(Operation::new(OperationKind::Else(JUMP_DEFAULT), token.loc)),
+                    KeywordType::If    => operations.push(Operation::new(OperationKind::If(None), token.loc)),
+                    KeywordType::End   => operations.push(Operation::new(OperationKind::End(None), token.loc)),
+                    KeywordType::Else  => operations.push(Operation::new(OperationKind::Else(None), token.loc)),
                     KeywordType::While => operations.push(Operation::new(OperationKind::While, token.loc)),
-                    KeywordType::Do    => operations.push(Operation::new(OperationKind::Do(JUMP_DEFAULT), token.loc)),
+                    KeywordType::Do    => operations.push(Operation::new(OperationKind::Do(None), token.loc)),
                     KeywordType::Macro => {
-                        let tok = tokens.pop().expect("macro must have a body and be closed by `end`");
+                        assert!(!tokens.is_empty(), "[ERROR]: {} Found keyword `macro` followed by nothing!", token.loc);
+                        let tok = tokens.pop().unwrap();
                         let name = match tok.kind {
                             TokenKind::Word(ref v) => {
                                 if let Some(m) = macros.get(v) {
-                                    panic!("[ERROR]: {} Macro with identifier {v:?} already implemented at {ml} (can't use the same identifier for macros)", token.loc, ml=&m.loc);
+                                    panic!("[ERROR]: {} Macro with identifier {:?} already implemented at {} (can't use the same identifier for macros)!", token.loc, v, m.loc);
                                 }
                                 if let Some(op_type) = OperationKind::from_str_builtin(v) {
-                                    panic!("[ERROR]: {} Can't use a builtin word {v:?} standing for {op_type:?} as an identifier for `macro`", token.loc);
+                                    panic!("[ERROR]: {} Macro identifier can't be a builtin word (intrinsic) {v:?} (stands for {:?})!", token.loc, op_type);
                                 }
                                 v.clone()
                             }
-                            TokenKind::Integer(v) => panic!("[ERROR]: {} - Expected `macro` identifier `Word` but found `Integer`: {v:?}", token.loc),
-                            TokenKind::String(v) => panic!("[ERROR]: {} - Expected `macro` identifier `Word` but found `String`: {v:?}", token.loc),
-                            TokenKind::Char(v) => unreachable!("[ERROR]: {} - Expected `macro` identifier `Word` but found `Char`: {v:?}", token.loc),
-                            TokenKind::KeyWord(v) => panic!("[ERROR]: {} - Expected `macro` identifier `Word` but found `Keyword`: {v:?}", token.loc),
-                            TokenKind::Intrinsic(v) => panic!("[ERROR]: {} - Expected `macro` identifier `Word` but found `Intrinsic`: {v:?}", token.loc),
+                            TokenKind::Integer32(v) => panic!("[ERROR]: {} ({v:?}) Identifier after macro must be `Word` but found `Integer32`!", token.loc),
+                            TokenKind::Integer64(v) => panic!("[ERROR]: {} ({v:?}) Identifier after macro must be `Word` but found `Integer64`!", token.loc),
+                            TokenKind::String(v)    => panic!("[ERROR]: {} ({v:?}) Identifier after macro must be `Word` but found `String`!", token.loc),
+                            TokenKind::Char(v)      => panic!("[ERROR]: {} ({v:?}) Identifier after macro must be `Word` but found `Char`!", token.loc),
+                            TokenKind::KeyWord(v)   => panic!("[ERROR]: {} ({v:?}) Identifier after macro must be `Word` but found `Keyword`!", token.loc),
+                            TokenKind::Intrinsic(v) => panic!("[ERROR]: {} ({v:?}) Identifier after macro must be `Word` but found `Intrinsic`!", token.loc),
                         };
                         macros.insert(name.clone(), Macro::from(token.loc, name.clone(), Vec::new()));
+                        let mut expanded_tokens: Vec<Token> = vec![];
+                        let mut nesting_depth = 0;
                         while let Some(tok) = tokens.pop() {
                             match &tok.kind {
-                                TokenKind::KeyWord(value) if *value == KeywordType::End => {
-                                    tokens.push(tok);
-                                    break;
+                                TokenKind::KeyWord(value) => {
+                                    if *value == KeywordType::End && nesting_depth == 0 {
+                                        tokens.push(tok);
+                                        break;
+                                    } else {
+                                        if [KeywordType::If, KeywordType::While, KeywordType::Macro].contains(value) {
+                                            nesting_depth += 1;
+                                        } else if *value == KeywordType::End {
+                                            nesting_depth -= 1;
+                                        }
+                                        expanded_tokens.push(tok);
+                                    }
                                 }
-                                _ => {}
+                                _ => expanded_tokens.push(tok),
                             }
-                            macros.get_mut(&name).unwrap().tokens.insert(0, tok.clone());
                         }
-                        tokens.pop().unwrap_or_else(|| panic!("[ERROR]: {} Macro {name:?} No `end` was found for `macro` block", tok.loc));
+                        expanded_tokens.reverse();
+                        macros.get_mut(&name).unwrap().tokens = expanded_tokens;
+                        tokens.pop().unwrap_or_else(|| panic!("[ERROR]: {} Macro {:?} has no `end`!", tok.loc, name));
                         continue;
                     }
                     KeywordType::Include => {
                         let include_arg = tokens.pop().unwrap();
                         match &include_arg.kind {
                             TokenKind::String(include_file) => {
+                                // todo: decide if this is possible, if yes then code like this 'inlcude "  stdlib.p "' will pass, if not it wont
+                                let include_file = include_file.trim();
+                                assert!(include_file.ends_with(crate::utils::LANGUAGE_SUFFIX), "[ERROR]: {} Source files have to end with {:?} suffix.", include_arg.loc, crate::utils::LANGUAGE_SUFFIX);
                                 let src_path = PathBuf::from(&token.loc.file);
                                 let inc_path = PathBuf::from(&include_file);
 
@@ -101,42 +125,47 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Ve
                                 let inc_file_name = inc_path.file_name().unwrap().to_str().unwrap();
 
                                 let mut search_directories = vec![ format!("{}/{}", src_dir, inc_dir) ];
-                                let mut include_directories = include_directories.clone();
+                                let mut include_directories = include_directories.to_owned();
                                 search_directories.append(&mut include_directories);
 
                                 for sd in search_directories.iter() {
-                                    if !fs::metadata(&sd).unwrap_or_else(|e| panic!("[ERROR]: {} Directory {inc_dir:?} does not exist: {e}", &include_arg.loc)).is_dir() {
-                                        panic!("[ERROR]: {:?} Provided path is not a directory", sd);
-                                    }
+                                    assert!(
+                                        fs::metadata(sd).unwrap_or_else(|e| panic!("[ERROR]: {} Directory {:?} does not exist! {e}", &include_arg.loc, inc_dir)).is_dir(), 
+                                        "[ERROR]: {:?} Provided path is not a directory!", sd
+                                    );
                                 }
 
-                                search_directories.iter_mut().for_each(|d| *d = format!("{}/{}", d, inc_file_name).replace("//", "/") );
-                                
-                                while let Some(sd) = search_directories.pop() {
-                                    match lexer::lex_file_to_tokens(sd.as_str()) {
-                                        Ok(ref mut include_tokens) => {
-                                            // dbg!(&include_tokens);
-                                            include_tokens.reverse();
-                                            tokens.append(include_tokens);
-                                            break;
+                                let mut search_filepath: Vec<String> = search_directories.iter().map(|d| format!("{}/{}", d, inc_file_name).replace("//", "/") ).collect();
+
+                                let mut include_success = false;
+                                while let Some(fp) = search_filepath.pop() {
+                                    if let Ok(ref mut include_tokens) = lexer::lex_file_to_tokens(fp.as_str()) {
+                                        include_tokens.reverse();
+                                        tokens.append(include_tokens);
+                                        if includes.contains_key(&fp.to_string()) {
+                                            assert!(
+                                                *includes.get(&fp.to_string()).unwrap() < expansion_limit,
+                                                "[ERROR]: {} For file {:?} include limit (expansion limit of {}) has been exceeded!", include_arg.loc, include_file, expansion_limit
+                                            );
+                                            includes.insert(fp.to_string(), *includes.get(&fp.to_string()).unwrap() + 1);
+                                        } else {
+                                            includes.insert(fp.to_string(), 0);
                                         }
-                                        Err(e) => {
-                                            if search_directories.len() <= 1 {
-                                                panic!("[ERROR]: {} {:?} {}", include_arg.loc, include_file, e);
-                                            }
-                                        }
+                                        include_success = true;
+                                        break;
                                     }
                                 }
+                                assert!(include_success, "[ERROR]: {} Include for {:?} failed, no such file in path!", token.loc, include_file);
                             }
-                            TokenKind::Integer(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Integer`", token.loc),
-                            TokenKind::Word(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Word`", token.loc),
-                            TokenKind::Char(v) => unreachable!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Char`", token.loc),
-                            TokenKind::KeyWord(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Keyword`", token.loc),
-                            TokenKind::Intrinsic(v) => panic!("[ERROR]: {} {v:?} - File after `include` must be `String` but found `Intrinsic`", token.loc),
+                            TokenKind::Integer32(v) => panic!("[ERROR]: {} {v:?} File after `include` must be `String` but found `Integer32`", token.loc),
+                            TokenKind::Integer64(v) => panic!("[ERROR]: {} {v:?} File after `include` must be `String` but found `Integer64`", token.loc),
+                            TokenKind::Word(v)      => panic!("[ERROR]: {} {v:?} File after `include` must be `String` but found `Word`", token.loc),
+                            TokenKind::Char(v)      => panic!("[ERROR]: {} {v:?} File after `include` must be `String` but found `Char`", token.loc),
+                            TokenKind::KeyWord(v)   => panic!("[ERROR]: {} {v:?} File after `include` must be `String` but found `Keyword`", token.loc),
+                            TokenKind::Intrinsic(v) => panic!("[ERROR]: {} {v:?} File after `include` must be `String` but found `Intrinsic`", token.loc),
                         }
                         continue;
                     }
-                    // uncaught_keyword_type => panic!("[ERROR]: {} {value:?} Should have already been converted token to operation: {uncaught_keyword_type:?} ", token.loc)
                 }
             }
         }
@@ -147,38 +176,67 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Ve
             OperationKind::If(_) => stack.push(addr_counter),
             OperationKind::While => stack.push(addr_counter),
             OperationKind::Do(do_jump) => {
-                let while_addr = stack.pop().unwrap_or_else(|| panic!("[ERROR]: Found `do` and expected `while`'s address on the stack: {} {}", op.loc, op.address));
-                if operations.get(while_addr).unwrap_or_else(|| panic!("[ERROR]: Operation at {while_addr} doesn't exist, expected `while` there")).kind != OperationKind::While {
-                    panic!("[ERROR]: {} {:?} found `do` but not `while`, intead found {:?}", &op.loc, &op.kind, operations[while_addr]);
-                }
-                *do_jump = while_addr as i32;
+                let while_addr = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} Found `do` with no preceding `while` (address stack is empty)! {}", op.loc, op.address));
+                
+                let while_op = operations.get(while_addr).unwrap_or_else(|| panic!("[ERROR]: {} There is no operation at {while_addr}, expected `while` operation there!", op.loc));
+                
+                assert!(
+                    while_op.kind == OperationKind::While, 
+                    "[ERROR]: {} Found `do` without preceeding `while`, intead found {} {:?}!", op.loc, while_op.loc, while_op.kind
+                );
+
+                *do_jump = Some(while_addr);
                 stack.push(addr_counter);
             }
             OperationKind::Else(_) => {
-                let if_addr = stack.pop().unwrap();
-                if let OperationKind::If(ref mut if_jump) = operations.get_mut(if_addr).unwrap_or_else(|| panic!("[ERROR]: Operation at {if_addr} doesn't exist, expected `if` there")).kind {
-                    *if_jump = (addr_counter + 1) as i32; 
+                let if_addr = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} Found `else` with no preceding `if` (address stack is empty)! {}", op.loc, op.address));
+                
+                let if_op = operations.get_mut(if_addr).unwrap_or_else(|| panic!("[ERROR]: {} There is no operation at {if_addr}, expected `if` operation there!", op.loc));
+
+                if let OperationKind::If(ref mut if_jump) = if_op.kind {
+                    *if_jump = Some(addr_counter + 1); 
+                } else {
+                    panic!("[ERROR]: {} Found `do` without preceeding `if`, instead found {} {:?}!", op.loc, if_op.loc, if_op.kind);
                 }
+                
                 stack.push(addr_counter);
             }
             OperationKind::End(end_jump) => {
-                let prev_addr = stack.pop().unwrap_or_else(|| panic!("[ERROR]: Found `end` but no corresponding block keyword address on the stack"));
-                match &mut operations.get_mut(prev_addr).unwrap_or_else(|| panic!("[ERROR]: Operation at {prev_addr} doesn't exist, expected block forming keyword")).kind {
-                    OperationKind::If(if_jump) => *if_jump = addr_counter as i32,
-                    OperationKind::Else(else_jump) => *else_jump = addr_counter as i32,
-                    OperationKind::Do(do_jump) => {
+                let prev_addr = stack.pop().unwrap_or_else(|| panic!("[ERROR]: {} Found `end` without preceeding block forming keyword (address stack is empty)!", op.loc));
+
+                let prev_op = operations.get_mut(prev_addr).unwrap_or_else(|| panic!("[ERROR]: {} There is no operation at {prev_addr}, expected block forming keyword there!", op.loc));
+
+                match &mut prev_op.kind {
+                    OperationKind::If   (if_jump)   => *if_jump   = Some(addr_counter),
+                    OperationKind::Else (else_jump) => *else_jump = Some(addr_counter),
+                    OperationKind::Do   (do_jump)   => {
                         *end_jump = *do_jump;
-                        *do_jump = (addr_counter + 1) as i32;
+                        *do_jump  = Some(addr_counter + 1);
                     }
-                    _ => panic!("[ERROR] `end` keyword found with no preceding block operations")
+                    _ => unreachable!("[ERROR]: Unreachable: {} Keyword `end` found with no preceding block opeations!", op.loc)
                 }
             }
-            _ => {}
+            _ => {}//Do nothing for non-block forming operations
         }
-        
         op.address = addr_counter;
         operations.push(op);
         addr_counter += 1;
+    }
+
+    for op in &operations {
+        //Check if all block forming operations have valid jump addresses
+        match op.kind {
+            OperationKind::If(jump) if jump.is_none() => {
+                unreachable!("[ERROR]: {} Operation `if` has to have a set jump address!", op.loc);
+            }
+            OperationKind::Else(jump) if jump.is_none() => {
+                unreachable!("[ERROR]: {} Operation `else` operation has to have a set jump address!", op.loc);
+            }
+            OperationKind::Do(jump) if jump.is_none() => {
+                unreachable!("[ERROR]: {} Operation do` operation has to have a set jump address!", op.loc);
+            }
+            _ => {}//Others dont have to have their jump address set
+        }
     }
     
     Ok(operations)

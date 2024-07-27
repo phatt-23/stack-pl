@@ -32,7 +32,7 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
         if bline[col] == b'"' { // Parsing String Literal
             col_end = find_col(&line, col + 1, |x| x == b'"');
             assert!(bline[col] == b'"');
-            assert!(bline[col_end] == b'"');
+            assert!(col_end < bline.len() && bline[col_end] == b'"', "[ERROR]: {} Found double quote starting a string without enclosing double quote!", loc);
 
             let value = &line[(col + 1)..col_end].to_string();
             tokens.push(Token::new_string(value, &loc));
@@ -41,7 +41,7 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
         } else if bline[col] == b'\'' { // Parse Char
             col_end = find_col(&line, col + 1, |x| x == b'\'');
             assert!(bline[col] == b'\'');
-            assert!(*bline.get(col_end).unwrap_or_else(|| panic!("[ERROR]: {} Char must end with a tick (') right after the char itself", &loc)) == b'\'');
+            assert!(col_end < bline.len() && bline[col_end] == b'\'', "[ERROR]: {} Found single quote starting a string without enclosing single quote!", loc);
 
             let value = &line[(col + 1)..(col_end)].to_string();
 
@@ -49,7 +49,8 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
                 "\\n" => tokens.push(Token::new_char('\n', &loc)),
                 "\\t" => tokens.push(Token::new_char('\t', &loc)),
                 "\\r" => tokens.push(Token::new_char('\r', &loc)),
-                _ if value.len() > 1 => panic!("[ERROR]: {} '{value}' is an invalid Char type, must only be single character", &loc),
+                "\\0" => tokens.push(Token::new_char('\0', &loc)),
+                _ if value.len() > 1 => panic!("[ERROR]: {} '{}' is an invalid Char type, must be a single character!", &loc, value),
                 s => {
                     let c = s.chars().next().unwrap();
                     tokens.push(Token::new_char(c, &loc));
@@ -66,7 +67,11 @@ fn lex_line_to_tokens(line: String, file: &str, row: usize) -> Vec<Token>
             } else if let Some(intrinsic) = IntrinsicType::from_str(word) {
                 tokens.push(Token::new_intrinsic(intrinsic, &loc));
             } else if let Ok(integer) = word.parse::<i32>() {
-                tokens.push(Token::new_integer(integer, &loc));
+                tokens.push(Token::new_integer32(integer, &loc));
+            } else if let Ok(integer) = word.parse::<i64>() {
+                tokens.push(Token::new_integer64(integer, &loc));
+            } else if let Ok(integer) = word.parse::<i128>() {
+                panic!("[ERROR]: {} {} Integer128 no supported!", loc, integer);
             } else {
                 tokens.push(Token::new_word(&word.to_string(), &loc));
             }

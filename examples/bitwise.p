@@ -1,10 +1,10 @@
-include "std.p"
+include "stdlib.p"
 
-1 3 << dump
-32 3 >> dump
-1 2 | dump
-1 2 & dump
+1 3 << print
+32 3 >> print
+1 2 | print
+1 2 & print
 
 12 60 syscall1
 
-dump dump
+print print
