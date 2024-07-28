@@ -1,7 +1,6 @@
 include "stdlib.p"
 
 "Hello, World\n" 1 1 syscall3
-
 "-------------------------------------------\n" write 
 123 dup + print
 123 345 - print

@@ -265,24 +265,63 @@ fn generate_operation(
                     writeln!(file, "        push  rbx")?;
                 }
                 /* -------------------------------- // Memory ------------------------------- */
-                IntrinsicType::MemoryPush => {
+                IntrinsicType::MemPush => {
                     writeln!(file, "    ;;mem")?;
                     writeln!(file, "        push MEMORY")?; 
                     writeln!(file, "        pop  rax")?;
                     writeln!(file, "        push rax")?;
                 }
-                IntrinsicType::MemoryLoad => {
-                    writeln!(file, "    ;;load")?;
+                IntrinsicType::MemLoad8 => {
+                    writeln!(file, "    ;;load8")?;
                     writeln!(file, "        pop   rax")?;
-                    writeln!(file, "        xor   rbx, rbx")?;
-                    writeln!(file, "        mov   bl, byte [rax]")?;
-                    writeln!(file, "        push  rbx")?;
+                    writeln!(file, "        xor   rdx, rdx")?;
+                    writeln!(file, "        mov   dl, byte [rax]")?;
+                    writeln!(file, "        push  rdx")?;
                 }
-                IntrinsicType::MemoryStore => {
-                    writeln!(file, "    ;;store")?;
-                    writeln!(file, "        pop rbx")?; // value
+                IntrinsicType::MemStore8 => {
+                    writeln!(file, "    ;;store8")?;
+                    writeln!(file, "        pop rdx")?; // value
                     writeln!(file, "        pop rax")?; // address
-                    writeln!(file, "        mov byte [rax], bl")?; // address
+                    writeln!(file, "        mov byte [rax], dl")?; // address
+                }
+                IntrinsicType::MemLoad16 => {
+                    writeln!(file, "    ;;load16")?;
+                    writeln!(file, "        pop   rax")?;
+                    writeln!(file, "        xor   rdx, rdx")?;
+                    writeln!(file, "        mov   dx, word [rax]")?;
+                    writeln!(file, "        push  rdx")?;
+                }
+                IntrinsicType::MemStore16 => {
+                    writeln!(file, "    ;;store16")?;
+                    writeln!(file, "        pop rdx")?; // value
+                    writeln!(file, "        pop rax")?; // address
+                    writeln!(file, "        mov word [rax], dx")?; // address
+                }
+                IntrinsicType::MemLoad32 => {
+                    writeln!(file, "    ;;load32")?;
+                    writeln!(file, "        pop   rax")?;
+                    writeln!(file, "        xor   rdx, rdx")?;
+                    writeln!(file, "        mov   edx, dword [rax]")?;
+                    writeln!(file, "        push  rdx")?;
+                }
+                IntrinsicType::MemStore32 => {
+                    writeln!(file, "    ;;store32")?;
+                    writeln!(file, "        pop rdx")?; // value
+                    writeln!(file, "        pop rax")?; // address
+                    writeln!(file, "        mov dword [rax], edx")?; // address
+                }
+                IntrinsicType::MemLoad64 => {
+                    writeln!(file, "    ;;load64")?;
+                    writeln!(file, "        pop   rax")?;
+                    writeln!(file, "        xor   rdx, rdx")?;
+                    writeln!(file, "        mov   rdx, qword [rax]")?;
+                    writeln!(file, "        push  rdx")?;
+                }
+                IntrinsicType::MemStore64 => {
+                    writeln!(file, "    ;;store64")?;
+                    writeln!(file, "        pop rdx")?; // value
+                    writeln!(file, "        pop rax")?; // address
+                    writeln!(file, "        mov qword [rax], rdx")?; // address
                 }
                 /* ------------------------------- // Syscall ------------------------------- */
                 IntrinsicType::Syscall1 => {
@@ -290,6 +329,7 @@ fn generate_operation(
                     writeln!(file, "        pop rax")?;
                     writeln!(file, "        pop rdi")?;
                     writeln!(file, "        syscall")?;
+                    writeln!(file, "        push rax")?;
                 }
                 IntrinsicType::Syscall2 => {
                     writeln!(file, "    ;;syscall3")?;
@@ -297,6 +337,7 @@ fn generate_operation(
                     writeln!(file, "        pop rdi")?;
                     writeln!(file, "        pop rsi")?;
                     writeln!(file, "        syscall")?;
+                    writeln!(file, "        push rax")?;
                 }
                 IntrinsicType::Syscall3 => {
                     writeln!(file, "    ;;syscall3")?;
@@ -305,6 +346,7 @@ fn generate_operation(
                     writeln!(file, "        pop rsi")?;
                     writeln!(file, "        pop rdx")?;
                     writeln!(file, "        syscall")?;
+                    writeln!(file, "        push rax")?;
                 }
                 IntrinsicType::Syscall4 => {
                     writeln!(file, "    ;;syscall4")?;
@@ -314,6 +356,7 @@ fn generate_operation(
                     writeln!(file, "        pop rdx")?;
                     writeln!(file, "        pop r10")?;
                     writeln!(file, "        syscall")?;
+                    writeln!(file, "        push rax")?;
                 }
                 IntrinsicType::Syscall5 => {
                     writeln!(file, "    ;;syscall5")?;
@@ -324,6 +367,7 @@ fn generate_operation(
                     writeln!(file, "        pop r10")?;
                     writeln!(file, "        pop r8")?;
                     writeln!(file, "        syscall")?;
+                    writeln!(file, "        push rax")?;
                 }
                 IntrinsicType::Syscall6 => {
                     writeln!(file, "    ;;syscall6")?;
@@ -335,6 +379,7 @@ fn generate_operation(
                     writeln!(file, "        pop r8")?;
                     writeln!(file, "        pop r9")?;
                     writeln!(file, "        syscall")?;
+                    writeln!(file, "        push rax")?;
                 }
             }
         }

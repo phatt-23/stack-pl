@@ -1,4 +1,4 @@
-use std::{ self, io, fs, path::PathBuf };
+use std::{self, io, fs, path::PathBuf};
 use std::collections::HashMap;
 
 use crate::operation::{Operation, OperationKind};
@@ -21,7 +21,11 @@ impl Macro {
     }
 }
 
-pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Vec<String>, expansion_limit: usize) -> Result<Vec<Operation>, io::Error> {
+pub fn compile_tokens_to_operations(
+    tokens: Vec<Token>, 
+    include_directories: &Vec<String>, 
+    expansion_limit: usize
+) -> Result<Vec<Operation>, io::Error> {
     let mut tokens = tokens.clone();
     tokens.reverse();
     
@@ -43,13 +47,12 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Ve
                 if let Some(op_kind) = OperationKind::from_str_builtin(value) {
                     operations.push(Operation::new(op_kind, token.loc.clone()));
                 } else if let Some(m) = macros.get_mut(value) {
-                    for i in 0..m.tokens.len() {
-                        let m_token = m.tokens.get_mut(i).unwrap();
-                        m_token.expanded += 1;
-                        if m_token.expanded >= expansion_limit {
-                            panic!("[ERROR]: {} Macro {:?} from {} was expanded beyond the macro expansion limit of {}!", token.loc, value, m_token.loc, expansion_limit);
-                        }
-                        let t = m.tokens.get(i).unwrap();
+                    for t in m.tokens.iter_mut() {
+                        t.expanded += 1;
+                        assert!(t.expanded < expansion_limit, 
+                            "[ERROR]: {} Macro {:?} from {} was expanded beyond the macro expansion limit of {}!", 
+                            token.loc, value, t.loc, expansion_limit
+                        );
                         tokens.push(t.clone()); 
                     }
                     continue;//So that the addr_counter wont get incremented
@@ -135,10 +138,10 @@ pub fn compile_tokens_to_operations(tokens: Vec<Token>, include_directories: &Ve
                                     );
                                 }
 
-                                let mut search_filepath: Vec<String> = search_directories.iter().map(|d| format!("{}/{}", d, inc_file_name).replace("//", "/") ).collect();
+                                let mut search_filepaths: Vec<String> = search_directories.iter().map(|d| format!("{}/{}", d, inc_file_name).replace("//", "/") ).collect();
 
                                 let mut include_success = false;
-                                while let Some(fp) = search_filepath.pop() {
+                                while let Some(fp) = search_filepaths.pop() {
                                     if let Ok(ref mut include_tokens) = lexer::lex_file_to_tokens(fp.as_str()) {
                                         include_tokens.reverse();
                                         tokens.append(include_tokens);

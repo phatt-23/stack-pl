@@ -1,23 +1,23 @@
 #[derive(PartialEq, Clone, Debug)]
 pub enum IntrinsicType {
-    // Stack
+    //Stack Maipulation
     Duplicate,
     Drop,
     Swap,
     Over,
     Rotate,
-    // Arithmetic
+    //Arithmetic Operations
     Add,
     Subtract,
     Multiply,
     DivMod,
-    // Bitwise
+    //Bitwise Operations
     BitNegate,
     BitAnd,
     BitOr,
     ShiftRight,
     ShiftLeft,
-    // Logic
+    //Comparison and Equality
     Equal,
     NotEqual,
     Less,
@@ -25,11 +25,17 @@ pub enum IntrinsicType {
     Greater,
     GreaterEqual,
     Not,
-    // Memory
-    MemoryPush,
-    MemoryLoad,
-    MemoryStore,
-    // Syscall
+    //Memory Operations
+    MemPush,
+    MemLoad8,
+    MemStore8,
+    MemLoad16,
+    MemStore16,
+    MemLoad32,
+    MemStore32,
+    MemLoad64,
+    MemStore64,
+    //Syscall
     Syscall1,
     Syscall2,
     Syscall3,
@@ -58,7 +64,7 @@ impl IntrinsicType {
             "or" => Some(Self::BitOr),
             "shr" => Some(Self::ShiftRight),
             "shl" => Some(Self::ShiftLeft),
-            // logic
+            // comparison
             "=" => Some(Self::Equal),
             "!=" => Some(Self::NotEqual),
             "<" => Some(Self::Less),
@@ -67,9 +73,15 @@ impl IntrinsicType {
             ">=" => Some(Self::GreaterEqual),
             "not" => Some(Self::Not),
             // memory
-            "memp" => Some(Self::MemoryPush),
-            "meml" => Some(Self::MemoryLoad),
-            "mems" => Some(Self::MemoryStore),
+            "mem" => Some(Self::MemPush),
+            "*8" => Some(Self::MemLoad8),
+            "!8" => Some(Self::MemStore8),
+            "*16" => Some(Self::MemLoad16),
+            "!16" => Some(Self::MemStore16),
+            "*32" => Some(Self::MemLoad32),
+            "!32" => Some(Self::MemStore32),
+            "*64" => Some(Self::MemLoad64),
+            "!64" => Some(Self::MemStore64),
             // system
             "syscall1" => Some(Self::Syscall1),
             "syscall2" => Some(Self::Syscall2),

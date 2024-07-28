@@ -21,8 +21,6 @@ pub enum OperationKind {
     End(Option<usize>),
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct Operation {
     pub loc: Location,

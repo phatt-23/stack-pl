@@ -1,11 +1,11 @@
 include "stdlib.p"
 
-mem dup 72  .  
-1 + dup 101 . 
-1 + dup 108 . 
-1 + dup 108 . 
-1 + dup 111 . 
-1 + dup 10  . 
+mem dup 72  !8  
+1 + dup 101 !8 
+1 + dup 108 !8 
+1 + dup 108 !8 
+1 + dup 111 !8 
+1 + dup 10  !8 
 1 +
 
 dup mem - mem 1 1 syscall3
